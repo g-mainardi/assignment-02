@@ -12,6 +12,8 @@ public class TestDependencyAnalyzerLib {
         testGetClassDependencies("src/main/java/pcd/ass02/foopack/B.java");
         testGetPackageDependencies("src/main/java/pcd/ass02/foopack/");
         testGetPackageDependencies("src/main/java/pcd/ass02/foopack2/");
+        testGetProjectDependencies(".");
+        testGetProjectDependencies("src/main/java/pcd/ass02/foopack/");
     }
 
     private static void testGetClassDependencies(final String filePath) {
@@ -32,6 +34,14 @@ public class TestDependencyAnalyzerLib {
             .onFailure((res) -> log("...failure with path [" + packagePath + "]: \n" + res.toString()));
     }
 
+    private static void testGetProjectDependencies(final String projectPath) {
+        log("Doing the project dependencies async call... ");
+        Future<PackageDepsReport> fut = getProjectDependencies(new File(projectPath));
+        log("...called function...");
+        fut
+                .onSuccess((res) -> log("...here are the dependencies \n" + res.toString()))
+                .onFailure((res) -> log("...failure with path [" + projectPath + "]: \n" + res.toString()));
+    }
 
     private static void log(String msg) {
         System.out.println("[ " + System.currentTimeMillis() + " ][ " + Thread.currentThread() + " ] " + msg);
