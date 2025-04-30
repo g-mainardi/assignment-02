@@ -36,7 +36,7 @@ public class TestDependencyAnalyzerLib {
 
     private static void testGetProjectDependencies(final String projectPath) {
         log("Doing the project dependencies async call... ");
-        Future<PackageDepsReport> fut = getProjectDependencies(new File(projectPath));
+        Future<ProjectDepsReport> fut = getProjectDependencies(new File(projectPath));
         log("...called function...");
         fut
                 .onSuccess((res) -> log("...here are the dependencies \n" + res.toString()))

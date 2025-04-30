@@ -37,8 +37,7 @@ public class DependencyAnalyzerLib {
     }
 
     public static Future<PackageDepsReport> getPackageDependencies(File source) {
-        Promise<PackageDepsReport> promise = Promise.promise();
-        vertx.executeBlocking(() -> {
+        return vertx.executeBlocking(() -> {
                     if (!source.isDirectory()) {
                         throw new IllegalArgumentException("This [" + source.toPath() + "] is not a package");
                     }
@@ -46,14 +45,16 @@ public class DependencyAnalyzerLib {
                     if (files == null) {
                         throw new IOException("List files returned null");
                     }
-                    List<Future<ClassDepsReport>> classReports = Arrays.stream(files)
+                    return List.of(files);
+                })
+                .compose(files -> {
+                    List<Future<ClassDepsReport>> classReports = files.stream()
                             .filter(File::isFile)
                             .map(DependencyAnalyzerLib::getClassDependencies)
                             .toList();
                     return Future.all(classReports);
                 })
-                .onSuccess(results -> promise.complete(new PackageDepsReport(results.list())));
-        return promise.future();
+                .map(res -> new PackageDepsReport(res.list()));
     }
 
     public static Future<PackageDepsReport> getPackageDependencies(String source) {
