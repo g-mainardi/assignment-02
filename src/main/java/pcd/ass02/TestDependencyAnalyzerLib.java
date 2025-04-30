@@ -9,7 +9,9 @@ import static pcd.ass02.DependencyAnalyzerLib.*;
 public class TestDependencyAnalyzerLib {
     public static void main(String[] args) throws Exception {
         testGetClassDependencies("");
-        testGetClassDependencies("src/main/java/pcd/ass02/Main.java");
+        testGetClassDependencies("src/main/java/pcd/ass02/foopack/B.java");
+        testGetPackageDependencies("src/main/java/pcd/ass02/foopack/");
+        testGetPackageDependencies("src/main/java/pcd/ass02/foopack2/");
     }
 
     private static void testGetClassDependencies(final String filePath) {
@@ -18,8 +20,18 @@ public class TestDependencyAnalyzerLib {
         log("...called function...");
         fut
             .onSuccess((res) -> log("...here are the dependencies \n" + res.toString()))
-            .onFailure((res) -> log("...failure with path [" + filePath + "]: \n" + res.toString()));
+            .onFailure((err) -> log("...failure with path [" + filePath + "]: \n" + err.toString()));
     }
+
+    private static void testGetPackageDependencies(final String packagePath) {
+        log("Doing the package dependencies async call... ");
+        Future<PackageDepsReport> fut = getPackageDependencies(new File(packagePath));
+        log("...called function...");
+        fut
+            .onSuccess((res) -> log("...here are the dependencies \n" + res.toString()))
+            .onFailure((res) -> log("...failure with path [" + packagePath + "]: \n" + res.toString()));
+    }
+
 
     private static void log(String msg) {
         System.out.println("[ " + System.currentTimeMillis() + " ][ " + Thread.currentThread() + " ] " + msg);

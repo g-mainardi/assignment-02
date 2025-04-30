@@ -1,6 +1,9 @@
 package pcd.ass02.foopack;
 
-public class D {
+import pcd.ass02.C;
 
-	public void m(){}
+public class D {
+	public void m(){
+		C.p2();
+	}
 }
