@@ -33,6 +33,10 @@ public class DependencyAnalyzerLib {
         return true;
     }
 
+    private static boolean isJavaFile(File file) {
+        return file.getName().endsWith(".java");
+    }
+
     public static Future<ClassDepsReport> getClassDependencies(File source) {
         return vertx.executeBlocking(() -> {
             CompilationUnit unit = StaticJavaParser.parse(source);
@@ -58,6 +62,7 @@ public class DependencyAnalyzerLib {
                 .compose(files -> {
                     List<Future<ClassDepsReport>> classReports = files.stream()
                             .filter(File::isFile)
+                            .filter(DependencyAnalyzerLib::isJavaFile)
                             .map(DependencyAnalyzerLib::getClassDependencies)
                             .toList();
                     return Future.all(classReports);
