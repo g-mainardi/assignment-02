@@ -16,31 +16,10 @@ import java.util.stream.Collectors;
 public class DependencyAnalyzerLib {
 
     public record ClassDepsReport(List<String> dependencies){}
+    private static final Vertx vertx = Vertx.vertx();
 
-    public static Future<ClassDepsReport> getClassDependencies(String source) {
-        return Vertx.vertx().fileSystem().exists(source)
-                .compose(exist -> {
-                    if (exist) {
-                        return Future.succeededFuture(new File(source));
-                    }
-                    else {
-                        return Future.failedFuture(new IllegalArgumentException("File doesnt exist"));
-                    }
-                }).compose(file -> {
-                    try {
-                        return Future.succeededFuture(StaticJavaParser.parse(file)
-                                .getImports().stream()
-                                .map(ImportDeclaration::getName)
-                                .map(Objects::toString)
-                                .collect(Collectors.toList()));
-                    } catch (FileNotFoundException e) {
-                        return Future.failedFuture(e);
-                    }
-                }).map(ClassDepsReport::new);
-    }
-
-    public static Future<ClassDepsReport> getClassDependenciesRaw(File source) {
-        return Vertx.vertx().executeBlocking(() -> {
+    public static Future<ClassDepsReport> getClassDependencies(File source) {
+        return vertx.executeBlocking(() -> {
             CompilationUnit unit = StaticJavaParser.parse(source);
             List<String> imports = unit.getImports().stream()
                     .map(ImportDeclaration::getName)
