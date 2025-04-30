@@ -4,16 +4,13 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class DependencyAnalyzerLib {
@@ -35,8 +32,7 @@ public class DependencyAnalyzerLib {
     public record PackageDepsReport(List<ClassDepsReport> classReports){}
 
     public static Future<PackageDepsReport> getPackageDependencies(File source) {
-        Promise<PackageDepsReport> promise = Promise.promise();
-        vertx.executeBlocking(() -> {
+        return vertx.executeBlocking(() -> {
                     if (!source.isDirectory()) {
                         throw new IllegalArgumentException("This [" + source.toPath() + "] is not a package");
                     }
@@ -44,14 +40,16 @@ public class DependencyAnalyzerLib {
                     if (files == null) {
                         throw new IOException("List files returned null");
                     }
-                    List<Future<ClassDepsReport>> classReports = Arrays.stream(files)
+                    return List.of(files);
+                })
+                .compose(files -> {
+                    List<Future<ClassDepsReport>> classReports = files.stream()
                             .filter(File::isFile)
                             .map(DependencyAnalyzerLib::getClassDependencies)
                             .toList();
                     return Future.all(classReports);
                 })
-                .onSuccess(results -> promise.complete(new PackageDepsReport(results.list())));
-        return promise.future();
+                .map(res -> new PackageDepsReport(res.list()));
     }
 
     public static Future<PackageDepsReport> getPackageDependencies(String source) {
