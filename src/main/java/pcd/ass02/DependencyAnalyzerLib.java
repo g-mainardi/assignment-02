@@ -3,7 +3,6 @@ package pcd.ass02;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -14,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,6 +22,16 @@ public class DependencyAnalyzerLib {
     public record ClassDepsReport(List<String> dependencies) {}
     public record PackageDepsReport(List<ClassDepsReport> classReports) {}
     public record ProjectDepsReport(List<PackageDepsReport> classReports) {}
+
+    private static boolean isVisible(Path path) {
+        for (Path part : path) {
+            String name = part.toString();
+            if (!name.equals(".") && name.startsWith(".")) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     public static Future<ClassDepsReport> getClassDependencies(File source) {
         return vertx.executeBlocking(() -> {
@@ -90,10 +98,11 @@ public class DependencyAnalyzerLib {
                         throw new IllegalArgumentException("Not a dir");
                     }
                     try (Stream<Path> pathStream = Files.walk(source.toPath())) {
-                        return pathStream.map(Path::toFile)
+                        return pathStream
+                                .filter(DependencyAnalyzerLib::isVisible)
+                                .map(Path::toFile)
                                 .filter(File::isDirectory)
-                                .filter(Predicate.not(File::isHidden))
-                                .toList();
+                                .collect(Collectors.toSet());
                     }
                 })
                 .compose(directories -> {
@@ -106,18 +115,4 @@ public class DependencyAnalyzerLib {
         return promise.future();
     }
 
-    public static List<File> getAllSubDirectories(File source) {
-        File[] files = source.listFiles();
-        if (files == null) {
-            return Collections.emptyList();
-        }
-        List<File> directories = new ArrayList<>(Arrays.stream(files)
-                .filter(File::isDirectory)
-                .filter(Predicate.not(File::isHidden))
-                .toList());
-        directories.addAll(directories.stream()
-                .flatMap(dir -> getAllSubDirectories(dir).stream())
-                .toList());
-        return directories;
-    }
 }
