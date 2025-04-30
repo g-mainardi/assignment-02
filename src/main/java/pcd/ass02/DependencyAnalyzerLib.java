@@ -38,7 +38,7 @@ public class DependencyAnalyzerLib {
         Promise<PackageDepsReport> promise = Promise.promise();
         vertx.executeBlocking(() -> {
                     if (!source.isDirectory()) {
-                        throw new IllegalArgumentException("Not dir");
+                        throw new IllegalArgumentException("This [" + source.toPath() + "] is not a package");
                     }
                     File[] files = source.listFiles();
                     if (files == null) {
@@ -50,27 +50,25 @@ public class DependencyAnalyzerLib {
                             .toList();
                     return Future.all(classReports);
                 })
-                .onSuccess(compositeFuture -> promise.complete(new PackageDepsReport(compositeFuture.list())));
+                .onSuccess(results -> promise.complete(new PackageDepsReport(results.list())));
         return promise.future();
     }
 
     public static Future<PackageDepsReport> getPackageDependencies(String source) {
-        FileSystem fileSystem = Vertx.vertx().fileSystem();
+        FileSystem fileSystem = vertx.fileSystem();
         return fileSystem
                 .exists(source)
                 .compose(exist -> {
-                    if (exist) {
-                        return fileSystem.props(source);
-                    } else {
-                        return Future.failedFuture(new IllegalArgumentException("File doesnt exist"));
+                    if (!exist) {
+                        return Future.failedFuture(new IllegalArgumentException("File doesn't exist"));
                     }
+                    return fileSystem.props(source);
                 })
                 .compose(fileProps -> {
-                    if (fileProps.isDirectory()) {
-                        return fileSystem.readDir(source);
-                    } else {
+                    if (!fileProps.isDirectory()) {
                         return Future.failedFuture(new IllegalArgumentException("File is not a directory"));
                     }
+                    return fileSystem.readDir(source);
                 })
                 .compose(paths -> {
                     List<Future<ClassDepsReport>> classReports = paths.stream()
@@ -79,6 +77,6 @@ public class DependencyAnalyzerLib {
                             .collect(Collectors.toList());
                     return Future.all(classReports);
                 })
-                .map(compositeFuture -> new PackageDepsReport(compositeFuture.list()));
+                .map(results -> new PackageDepsReport(results.list()));
     }
 }
