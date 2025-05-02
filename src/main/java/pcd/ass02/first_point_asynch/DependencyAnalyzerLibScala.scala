@@ -1,9 +1,9 @@
 package pcd.ass02.first_point_asynch
 
 import com.github.javaparser.*
-import io.vertx.core.{Future, Vertx}
+import io.vertx.core.{CompositeFuture, Future, Vertx}
 
-import java.io.File
+import java.io.{File, IOException}
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.*
 
@@ -31,8 +31,15 @@ object DependencyAnalyzerLibScala {
     unit.getImports.asScala.toList map(_.getName) map(_.toString)
   }
 
-  def getPackageDependencies(source: File): Future[DependencyAnalyzerLib.PackageDepsReport] = ???
-  def getPackageDependencies(source: File): Future[PackageDepsReport] = ???
+  def getPackageDependencies(source: File): Future[PackageDepsReport] =
+    vertx executeBlocking { () =>
+      source match
+        case s if !s.isDirectory => throw new IllegalArgumentException("This [" + source.toPath + "] is not a package")
+        case s => Option(s.listFiles) getOrElse (throw new IOException("List files returned null"))
+    } compose { files =>
+      val classReports = files filter (_.isFile) filter isJavaFile map getClassDependencies
+      Future all classReports.toList.asJava
+    } map {_.list.asScala.toList filter ((s: ClassDepsReport) => s.nonEmpty)}
 
   def getProjectDependencies(source: File): Future[DependencyAnalyzerLib.ProjectDepsReport] = ???
   def getProjectDependencies(source: File): Future[ProjectDepsReport] = ???
