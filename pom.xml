@@ -63,7 +63,11 @@
             <artifactId>gs-ui-javafx</artifactId>
             <version>2.0</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala3-library_3</artifactId>
+            <version>3.3.3</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -119,6 +123,28 @@
                     <mainClass>pcd.ass02.second_point_reactive.GUI</mainClass>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>4.8.1</version>
+                <executions>
+                    <!-- compila prima gli .scala e poi i .java -->
+                    <execution>
+                        <id>scala-compile-first</id>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <scalaVersion>3.3.3</scalaVersion>
+                    <args>
+                        <arg>-target:jvm-17</arg>
+                    </args>
+                </configuration>
+            </plugin>
+
 
             <!--
                     <plugin>
