@@ -23,9 +23,24 @@ public class DependencyAnalyzerLib {
 
     private static final JavaParser parser = new JavaParser(config);
 
-    public record ClassDepsReport(List<String> dependencies) {}
-    public record PackageDepsReport(List<ClassDepsReport> classReports) {}
-    public record ProjectDepsReport(List<PackageDepsReport> classReports) {}
+    public record ClassDepsReport(List<String> dependencies) {
+        public boolean hasDependencies(){
+            return !dependencies.isEmpty();
+        }
+    }
+    public record PackageDepsReport(List<ClassDepsReport> classReports) {
+        public PackageDepsReport(Stream<ClassDepsReport> stream){
+            this(stream.toList());
+        }
+        public boolean hasDependencies(){
+            return !classReports.isEmpty();
+        }
+    }
+    public record ProjectDepsReport(List<PackageDepsReport> classReports) {
+        public ProjectDepsReport(Stream<PackageDepsReport> stream){
+            this(stream.toList());
+        }
+    }
 
     private static boolean isVisible(Path path) {
         for (Path part : path) {
@@ -74,7 +89,10 @@ public class DependencyAnalyzerLib {
                             .toList();
                     return Future.all(classReports);
                 })
-                .map(res -> new PackageDepsReport(res.list()));
+                .map(res -> {
+                    List<ClassDepsReport> reports = res.list();
+                    return new PackageDepsReport(reports.stream().filter(ClassDepsReport::hasDependencies));
+                });
     }
 
     public static Future<PackageDepsReport> getPackageDependencies(String source) {
@@ -123,7 +141,10 @@ public class DependencyAnalyzerLib {
                             .collect(Collectors.toList());
                     return Future.all(packageReports);
                 })
-                .onSuccess(future -> promise.complete(new ProjectDepsReport(future.list())))
+                .onSuccess(future -> {
+                    List<PackageDepsReport> reports = future.list();
+                    promise.complete(new ProjectDepsReport(reports.stream().filter(PackageDepsReport::hasDependencies)));
+                })
                 .onFailure(err -> System.out.println("Analisi packages: Errore! \n" + err.getMessage()));
         return promise.future();
     }
