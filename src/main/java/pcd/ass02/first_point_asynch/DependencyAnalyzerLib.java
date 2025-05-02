@@ -17,8 +17,7 @@ import java.util.stream.Stream;
 
 public class DependencyAnalyzerLib {
     private static final Vertx vertx = Vertx.vertx();
-    static ParserConfiguration config = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_14);
-
+    private static final ParserConfiguration config = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_14);
     private static final JavaParser parser = new JavaParser(config);
 
     public record ClassDepsReport(List<String> dependencies) {
@@ -56,11 +55,8 @@ public class DependencyAnalyzerLib {
 
     public static Future<ClassDepsReport> getClassDependencies(File source) {
         return vertx.executeBlocking(() -> {
-            Optional<CompilationUnit> unit = parser.parse(source).getResult();
-            if (unit.isEmpty()) {
-                throw new IllegalArgumentException("Failed to parse [" + source + "]");
-            }
-            List<String> imports = unit.get().getImports().stream()
+            CompilationUnit unit = parser.parse(source).getResult().orElseThrow(() -> new IllegalArgumentException("Failed to parse [" + source + "]"));
+            List<String> imports = unit.getImports().stream()
                     .map(ImportDeclaration::getName)
                     .map(Objects::toString)
                     .collect(Collectors.toList());
