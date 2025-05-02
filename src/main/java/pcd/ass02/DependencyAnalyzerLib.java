@@ -5,9 +5,7 @@ import com.github.javaparser.*;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.file.FileSystem;
 
 import java.io.File;
 import java.io.IOException;
@@ -95,35 +93,8 @@ public class DependencyAnalyzerLib {
                 });
     }
 
-    public static Future<PackageDepsReport> getPackageDependencies(String source) {
-        FileSystem fileSystem = vertx.fileSystem();
-        return fileSystem
-                .exists(source)
-                .compose(exist -> {
-                    if (!exist) {
-                        return Future.failedFuture(new IllegalArgumentException("File doesn't exist"));
-                    }
-                    return fileSystem.props(source);
-                })
-                .compose(fileProps -> {
-                    if (!fileProps.isDirectory()) {
-                        return Future.failedFuture(new IllegalArgumentException("File is not a directory"));
-                    }
-                    return fileSystem.readDir(source);
-                })
-                .compose(paths -> {
-                    List<Future<ClassDepsReport>> classReports = paths.stream()
-                            .map(File::new)
-                            .map(DependencyAnalyzerLib::getClassDependencies)
-                            .collect(Collectors.toList());
-                    return Future.all(classReports);
-                })
-                .map(results -> new PackageDepsReport(results.list()));
-    }
-
     public static Future<ProjectDepsReport> getProjectDependencies(File source) {
-        Promise<ProjectDepsReport> promise = Promise.promise();
-        vertx.executeBlocking(() -> {
+        return vertx.executeBlocking(() -> {
                     if (!source.isDirectory()) {
                         throw new IllegalArgumentException("Not a dir");
                     }
@@ -141,12 +112,10 @@ public class DependencyAnalyzerLib {
                             .collect(Collectors.toList());
                     return Future.all(packageReports);
                 })
-                .onSuccess(future -> {
+                .map(future -> {
                     List<PackageDepsReport> reports = future.list();
-                    promise.complete(new ProjectDepsReport(reports.stream().filter(PackageDepsReport::hasDependencies)));
-                })
-                .onFailure(err -> System.out.println("Analisi packages: Errore! \n" + err.getMessage()));
-        return promise.future();
+                    return new ProjectDepsReport(reports.stream().filter(PackageDepsReport::hasDependencies));
+                });
     }
 
 }
