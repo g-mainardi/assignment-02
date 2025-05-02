@@ -1,4 +1,4 @@
-package pcd.ass02.foopack;
+package pcd.ass02.first_point_asynch.example;
 
 import java.io.File;
 import java.util.ArrayList;

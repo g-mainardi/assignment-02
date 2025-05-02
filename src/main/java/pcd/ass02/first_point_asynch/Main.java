@@ -1,4 +1,4 @@
-package pcd.ass02;
+package pcd.ass02.first_point_asynch;
 
 import java.io.File;
 import com.github.javaparser.StaticJavaParser;

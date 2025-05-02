@@ -1,10 +1,10 @@
-package pcd.ass02;
+package pcd.ass02.first_point_asynch;
 
 import io.vertx.core.Future;
 
 import java.io.File;
 
-import static pcd.ass02.DependencyAnalyzerLib.*;
+import static pcd.ass02.first_point_asynch.DependencyAnalyzerLib.*;
 
 public class TestDependencyAnalyzerLib {
     public static void main(String[] args) throws Exception {

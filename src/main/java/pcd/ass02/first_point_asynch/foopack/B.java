@@ -1,6 +1,6 @@
-package pcd.ass02.foopack;
+package pcd.ass02.first_point_asynch.foopack;
 
-import pcd.ass02.example.A;
+import pcd.ass02.first_point_asynch.example.A;
 
 public class B {
     public static void printFiles(){
