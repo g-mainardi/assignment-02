@@ -9,11 +9,11 @@ import static pcd.ass02.first_point_asynch.DependencyAnalyzerLib.*;
 public class TestDependencyAnalyzerLib {
     public static void main(String[] args) throws Exception {
         testGetClassDependencies("");
-        testGetClassDependencies("src/main/java/pcd/ass02/foopack/B.java");
-        testGetPackageDependencies("src/main/java/pcd/ass02/foopack/");
-        testGetPackageDependencies("src/main/java/pcd/ass02/foopack2/");
+        testGetClassDependencies("src/main/java/pcd/ass02/first_point_asynch/foopack/B.java");
+        testGetPackageDependencies("src/main/java/pcd/ass02/first_point_asynch/foopack/");
+        testGetPackageDependencies("src/main/java/pcd/ass02/first_point_asynch/foopack2/");
         testGetProjectDependencies(".");
-        testGetProjectDependencies("src/main/java/pcd/ass02/foopack/");
+        testGetProjectDependencies("src/main/java/pcd/ass02/first_point_asynch/foopack/");
     }
 
     private static void testGetClassDependencies(final String filePath) {
