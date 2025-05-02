@@ -26,10 +26,10 @@ object DependencyAnalyzerLibScala {
 
   private def isJavaFile(file: File) = file.getName.endsWith(".java")
 
-  def getClassDependencies(source: File): Future[ClassDepsReport] = vertx.executeBlocking(() => {
+  def getClassDependencies(source: File): Future[ClassDepsReport] = vertx.executeBlocking{() =>
     val unit = parser.parse(source).getResult orElseThrow(() => new IllegalArgumentException("Failed to parse [" + source + "]"))
-    unit.getImports.asScala.toList.map(_.getName).map(_.toString)
-  })
+    unit.getImports.asScala.toList map(_.getName) map(_.toString)
+  }
 
   def getPackageDependencies(source: File): Future[DependencyAnalyzerLib.PackageDepsReport] = ???
   def getPackageDependencies(source: File): Future[PackageDepsReport] = ???
