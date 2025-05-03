@@ -17,13 +17,7 @@ object DependencyAnalyzerLibScala {
   opaque type PackageDepsReport = List[ClassDepsReport]
   opaque type ProjectDepsReport = List[PackageDepsReport]
 
-  private def isVisible(path: Path): Boolean =
-    path.forEach { part =>
-      val name = part.toString
-      if (!(name == ".") && name.startsWith(".")) return false
-    }
-    true
-
+  private def isVisible(p: Path) = !(p.iterator.asScala map(_.toString) exists(n => n != "." && n.startsWith(".")))
   private def isJavaFile(file: File) = file.getName.endsWith(".java")
 
   def getClassDependencies(source: File): Future[ClassDepsReport] = vertx.executeBlocking{() =>
