@@ -12,7 +12,13 @@ object Analyzer {
   private val parser = new JavaParser(config)
   opaque type Dependency = String
   case class ClassInfo(name: String, dependencies: List[Dependency])
-  case class PackageInfo(name: String, classInfos: Observable[ClassInfo])
+  case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
+    def log(): Unit =
+      val id = PackageId.next()
+      println(s"[$id] Nome Package ${this.name}")
+      this.classInfos subscribe { (ci: ClassInfo) => println(s"[$id]\t\t$ci") }
+      println("")
+  }
   private def isVisible(p: Path) = !(p.iterator.asScala map(_.toString) exists(n => n != "." && n.startsWith(".")))
   private def isJavaFile(file: File) = file.isFile && (file.getName endsWith ".java")
   private def isPackage(f: File): Boolean = f.isDirectory && f.listFiles(isJavaFile).nonEmpty
@@ -54,20 +60,17 @@ object Analyzer {
       case _ => throw IllegalArgumentException("Not a dir")
     }
 
-  def main(args: Array[String]): Unit =
-    object PackageId {
-      private var count: Int = 0
-      def next(): Int =
-        val ret = count
-        count += 1
-        ret
-    }
-    scanProject(File(".")).subscribe {
-      (pi: PackageInfo) =>
-        val id = PackageId.next()
-        println(s"[$id] Nome Package ${pi.name}")
-        pi.classInfos subscribe { (ci: ClassInfo) => println(s"[$id]\t\t$ci") }
-        println("")
-    }
+  private object PackageId {
+    private var count: Int = 0
+    def next(): Int =
+      val ret = count
+      count += 1
+      ret
+    def reset(): Unit = count = 0
+  }
+  def main(args: Array[String]): Unit = {
+    scanProject(File(".")).subscribe {(pi: PackageInfo) => pi.log()}
+    PackageId.reset()
+  }
 }
 
