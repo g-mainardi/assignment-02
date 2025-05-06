@@ -35,6 +35,7 @@ class GUIS extends Application {
     graph addNode ci.name setAttribute("ui.label", ci.name)
 
   private def drawDependency(className: String, to: Dependency): Unit =
+    graph addNode to.toString setAttribute("ui.label", to)
     val edgeId = s"$className->$to"
     Option(graph getEdge edgeId) match
       case None => graph addEdge(edgeId, className, to.toString, true) // true = directed
@@ -64,11 +65,15 @@ class GUIS extends Application {
           }
         }
       }
+    def reset(): Unit =
+      graph.clear()
+      classCounter.set(0)
+      depCounter.set(0)
     btnDir setOnAction {_ =>
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
           lblDir setText sel.getAbsolutePath
-          btnRun setOnAction {_ => scanProject(sel) subscribe drawPackageInfo}
+          btnRun setOnAction {_ => reset(); scanProject(sel) subscribe drawPackageInfo}
         case _ => throw IllegalArgumentException("File selection failed!")
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
