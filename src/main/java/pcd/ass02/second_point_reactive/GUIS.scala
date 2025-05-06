@@ -1,52 +1,45 @@
 package pcd.ass02.second_point_reactive
 
-import Analyzer.{ClassInfo, PackageInfo, scanProject}
-import javafx.application.Application
+import Analyzer.{ClassInfo, Dependency, PackageInfo, scanProject}
+import javafx.application.{Application, Platform}
 import javafx.event.ActionEvent
 import javafx.stage.{DirectoryChooser, Stage}
-import javafx.scene.{Scene, control, layout, shape, input}
-import input.ScrollEvent.SCROLL
+import javafx.scene.{Scene, control, layout}
 import control.*
-import layout.{BorderPane, HBox, Pane}
-import shape.Circle
+import layout.{BorderPane, HBox}
+import org.graphstream.graph.*
+import org.graphstream.graph.implementations.*
+import org.graphstream.ui.fx_viewer.{FxViewPanel, FxViewer}
+import org.graphstream.ui.view.Viewer
+
+import java.util.concurrent.atomic.AtomicInteger
 
 class GUIS extends Application {
   val WIDTH = 800
   val HEIGHT = 600
   val hSpacing = 10
 
+  private lazy val graph = SingleGraph("Class Dependencies")
   private lazy val graphPane = createGraphPane()
-  private var dragStartX = 0.0
-  private var dragStartY = 0.0
-  private def createGraphPane(): Pane =
-    val pane = Pane()
-    pane addEventFilter (SCROLL, e =>
-      val zoomFactor = if (e.getDeltaY > 0) 1.1 else 0.9
-      pane setScaleX(pane.getScaleX * zoomFactor)
-      pane setScaleY(pane.getScaleY * zoomFactor)
-      e.consume()
-    )
-    pane.setOnMousePressed {e =>
-      dragStartX = e.getSceneX - pane.getTranslateX
-      dragStartY = e.getSceneY - pane.getTranslateY
-    }
-    pane setOnMouseDragged {e =>
-      pane setTranslateX(e.getSceneX - dragStartX)
-      pane setTranslateY(e.getSceneY - dragStartY)
-    }
-    pane
+  private def createGraphPane(): FxViewPanel =
+    graph setAutoCreate true
+    graph setStrict false
+    val viewer: Viewer = FxViewer(graph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD)
+    viewer.enableAutoLayout()
+    viewer.addDefaultView(false).asInstanceOf[FxViewPanel]
 
-  private val radius = 30
-  private val pos_x, pos_y = 100
-  private def drawClassNode(ci: ClassInfo, index: Int): Unit =
-    val circle = Circle(radius)
-    circle setLayoutX {pos_x + index * pos_x}
-    circle setLayoutY pos_y
-    circle setStyle "-fx-fill: lightblue;"
-    val label = Label(ci.name)
-    label setLayoutX {circle.getLayoutX - 20}
-    label setLayoutY {circle.getLayoutY - 10}
-    graphPane.getChildren addAll(circle, label)
+  private val classCounter = new AtomicInteger(0)
+  private val depCounter = new AtomicInteger(0)
+
+  private def drawClassNode(ci: ClassInfo): Unit =
+    graph addNode ci.name setAttribute("ui.label", ci.name)
+
+  private def drawDependency(className: String, to: Dependency): Unit =
+    val edgeId = s"$className->$to"
+    Option(graph getEdge edgeId) match
+      case None => graph addEdge(edgeId, className, to.toString, true) // true = directed
+      case _    => ()
+
   override def start(primaryStage: Stage): Unit =
     val btnDir = Button("Select Source")
     val lblDir = Label("No folder selected")
@@ -58,11 +51,19 @@ class GUIS extends Application {
     root setTop topBar
     root setCenter graphPane
 
-    def drawPackageInfo(pi: PackageInfo): Unit = pi.log() //todo Implement real drawing
-
     def drawPackageInfo(pi: PackageInfo): Unit =
       pi.log()
-      pi.classInfos subscribe { ci => drawClassNode(ci, index = 0)}
+      pi.classInfos subscribe { ci =>
+        Platform.runLater { () =>
+          val count = classCounter.incrementAndGet()
+          lblClasses setText s"Classes: $count"
+          lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
+          drawClassNode(ci)
+          ci.dependencies foreach { (dep: Dependency) =>
+            drawDependency(ci.name, dep)
+          }
+        }
+      }
     btnDir setOnAction {_ =>
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
