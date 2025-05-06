@@ -10,8 +10,8 @@ import scala.jdk.CollectionConverters.*
 object Analyzer {
   private val config = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_14)
   private val parser = new JavaParser(config)
-  opaque type Dependency = String
-  case class ClassInfo(name: String, dependencies: List[Dependency])
+  opaque type ClassName = String
+  case class ClassInfo(name: ClassName, dependencies: List[ClassName])
   case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
     def log(): Unit =
       val id = PackageId.next()

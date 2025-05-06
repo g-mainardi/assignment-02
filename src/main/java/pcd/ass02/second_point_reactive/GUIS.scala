@@ -1,6 +1,6 @@
 package pcd.ass02.second_point_reactive
 
-import Analyzer.{ClassInfo, Dependency, PackageInfo, scanProject}
+import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
 import javafx.application.{Application, Platform}
 import javafx.stage.{DirectoryChooser, Stage}
 import javafx.scene.{Scene, control, layout}
@@ -28,12 +28,12 @@ class GUIS extends Application {
   private val depCounter   = AtomicInteger(0)
 
   private def drawClassNode(ci: ClassInfo): Unit =
-    graph addNode ci.name setAttribute("ui.label", ci.name)
+    graph addNode ci.name.toString setAttribute("ui.label", ci.name)
 
-  private def drawDependency(className: String, to: Dependency): Unit =
-    val edgeId = s"$className->$to"
+  private def drawDependency(from: ClassName, to: ClassName): Unit =
+    val edgeId: String = s"$from->$to"
     Option(graph getEdge edgeId) match
-      case None => graph addEdge(edgeId, className, to.toString, true) // true = directed
+      case None => graph addEdge(edgeId, from.toString, to.toString, true)
       case _    => ()
 
   override def start(primaryStage: Stage): Unit =
