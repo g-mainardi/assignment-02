@@ -15,8 +15,11 @@ object Analyzer {
   case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
     def log(): Unit =
       val id = PackageId.next()
-      println(s"[$id] Nome Package ${this.name}")
-      this.classInfos subscribe { (ci: ClassInfo) => println(s"[$id]\t\t$ci") }
+      println(s"Package: ${this.name}")
+      this.classInfos subscribe { (ci: ClassInfo) =>
+        println(s"\tClass: ${ci.name.replace(".java", "")}")
+        ci.dependencies.foreach(d => println(s"\t\t${d}"))
+      }
       println("")
   }
   private def isVisible(p: Path) = !(p.iterator.asScala map(_.toString) exists(n => n != "." && n.startsWith(".")))
