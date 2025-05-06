@@ -18,7 +18,7 @@ object Analyzer {
       println(s"Package: ${this.name}")
       this.classInfos subscribe { (ci: ClassInfo) =>
         println(s"\tClass: ${ci.name.replace(".java", "")}")
-        ci.dependencies.foreach(d => println(s"\t\t${d}"))
+        ci.dependencies.foreach(d => println(s"\t\t$d"))
       }
       println("")
   }
