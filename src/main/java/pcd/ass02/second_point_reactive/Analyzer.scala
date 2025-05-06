@@ -15,9 +15,9 @@ object Analyzer {
   case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
     def log(): Unit =
       val id = PackageId.next()
-      println(s"[$id] Nome Package ${this.name}")
-      this.classInfos subscribe { (ci: ClassInfo) => println(s"[$id]\t\t$ci") }
-      println("")
+      println(s"[$id] Package: $name")
+      classInfos.subscribe { (ci: ClassInfo) => println(s"[$id]\t${ci.name} -> ${ci.dependencies}") }
+      println()
   }
   private def isVisible(p: Path) = !(p.iterator.asScala map(_.toString) exists(n => n != "." && n.startsWith(".")))
   private def isJavaFile(file: File) = file.isFile && (file.getName endsWith ".java")
@@ -39,12 +39,10 @@ object Analyzer {
 
   private def scanPackage(source: File): Observable[ClassInfo] =
     Observable.create { emitter => Option(source.listFiles) match
-        case Some(files) => files.toList filter isJavaFile match
-          case filteredFiles if filteredFiles.nonEmpty =>
-            filteredFiles foreach { emitter onNext getClassInfo(_) }
-            emitter.onComplete()
-          case _ => emitter onError IOException("List files empty")
-        case _ => emitter onError IOException("List files returned null")
+        case Some(files) if files.nonEmpty =>
+          files filter isJavaFile foreach { emitter onNext getClassInfo(_) }
+          emitter.onComplete()
+        case _ => emitter onError IOException(s"No Java files in ${source.getAbsolutePath}")
     }
 
   def scanProject(source: File): Observable[PackageInfo] =
@@ -57,20 +55,19 @@ object Analyzer {
         finally
           stream.close()
           emitter.onComplete()
-      case _ => throw IllegalArgumentException("Not a dir")
+      case _ => emitter onError IllegalArgumentException("Not a dir")
     }
 
   private object PackageId {
     private var count: Int = 0
     def next(): Int =
-      val ret = count
-      count += 1
-      ret
+      val c = count
+      count += 1; c
     def reset(): Unit = count = 0
   }
-  def main(args: Array[String]): Unit = {
-    scanProject(File(".")).subscribe {(pi: PackageInfo) => pi.log()}
+
+  def main(args: Array[String]): Unit =
+    scanProject(File(".")) subscribe((pi: PackageInfo) => pi.log())
     PackageId.reset()
-  }
 }
 

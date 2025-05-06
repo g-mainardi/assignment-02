@@ -2,22 +2,18 @@ package pcd.ass02.second_point_reactive
 
 import Analyzer.{ClassInfo, Dependency, PackageInfo, scanProject}
 import javafx.application.{Application, Platform}
-import javafx.event.ActionEvent
 import javafx.stage.{DirectoryChooser, Stage}
 import javafx.scene.{Scene, control, layout}
 import control.*
 import layout.{BorderPane, HBox}
-import org.graphstream.graph.*
-import org.graphstream.graph.implementations.*
+import org.graphstream.graph.implementations.SingleGraph
 import org.graphstream.ui.fx_viewer.{FxViewPanel, FxViewer}
 import org.graphstream.ui.view.Viewer
 
 import java.util.concurrent.atomic.AtomicInteger
 
 class GUIS extends Application {
-  val WIDTH = 800
-  val HEIGHT = 600
-  val hSpacing = 10
+  val WIDTH = 800; val HEIGHT = 600; val hSpacing = 10
 
   private lazy val graph = SingleGraph("Class Dependencies")
   private lazy val graphPane = createGraphPane()
@@ -28,8 +24,8 @@ class GUIS extends Application {
     viewer.enableAutoLayout()
     viewer.addDefaultView(false).asInstanceOf[FxViewPanel]
 
-  private val classCounter = new AtomicInteger(0)
-  private val depCounter = new AtomicInteger(0)
+  private val classCounter = AtomicInteger(0)
+  private val depCounter   = AtomicInteger(0)
 
   private def drawClassNode(ci: ClassInfo): Unit =
     graph addNode ci.name setAttribute("ui.label", ci.name)
@@ -41,27 +37,23 @@ class GUIS extends Application {
       case _    => ()
 
   override def start(primaryStage: Stage): Unit =
-    val btnDir = Button("Select Source")
-    val lblDir = Label("No folder selected")
-    val btnRun = Button("Analyze")
+    val btnDir     = Button("Select Source")
+    val lblDir     = Label("No folder selected")
+    val btnRun     = Button("Analyze")
     val lblClasses = Label("Classes: 0")
-    val lblDeps = Label("Dependencies: 0")
+    val lblDeps    = Label("Dependencies: 0")
     val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps)
     val root = BorderPane()
-    root setTop topBar
-    root setCenter graphPane
+    root setTop topBar; root setCenter graphPane
 
     def drawPackageInfo(pi: PackageInfo): Unit =
       pi.log()
-      pi.classInfos subscribe { ci =>
+      pi.classInfos subscribe { (ci: ClassInfo) =>
         Platform.runLater { () =>
-          val count = classCounter.incrementAndGet()
-          lblClasses setText s"Classes: $count"
+          lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
           lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
           drawClassNode(ci)
-          ci.dependencies foreach { (dep: Dependency) =>
-            drawDependency(ci.name, dep)
-          }
+          ci.dependencies foreach{drawDependency(ci.name, _)}
         }
       }
     btnDir setOnAction {_ =>
@@ -69,7 +61,7 @@ class GUIS extends Application {
         case Some(sel) =>
           lblDir setText sel.getAbsolutePath
           btnRun setOnAction {_ => scanProject(sel) subscribe drawPackageInfo}
-        case _ => throw IllegalArgumentException("File selection failed!")
+        case _ => throw IllegalArgumentException("Directory selection failed!")
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
     primaryStage setTitle "Dependency Analyzer"
