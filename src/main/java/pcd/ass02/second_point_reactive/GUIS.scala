@@ -1,13 +1,14 @@
 package pcd.ass02.second_point_reactive
 
-import Analyzer.{PackageInfo, scanProject}
+import Analyzer.{ClassInfo, PackageInfo, scanProject}
 import javafx.application.Application
 import javafx.event.ActionEvent
 import javafx.stage.{DirectoryChooser, Stage}
-import javafx.scene.{Scene, control, layout, input}
+import javafx.scene.{Scene, control, layout, shape, input}
 import input.ScrollEvent.SCROLL
 import control.*
 import layout.{BorderPane, HBox, Pane}
+import shape.Circle
 
 class GUIS extends Application {
   val WIDTH = 800
@@ -35,6 +36,17 @@ class GUIS extends Application {
     }
     pane
 
+  private val radius = 30
+  private val pos_x, pos_y = 100
+  private def drawClassNode(ci: ClassInfo, index: Int): Unit =
+    val circle = Circle(radius)
+    circle setLayoutX {pos_x + index * pos_x}
+    circle setLayoutY pos_y
+    circle setStyle "-fx-fill: lightblue;"
+    val label = Label(ci.name)
+    label setLayoutX {circle.getLayoutX - 20}
+    label setLayoutY {circle.getLayoutY - 10}
+    graphPane.getChildren addAll(circle, label)
   override def start(primaryStage: Stage): Unit =
     val btnDir = Button("Select Source")
     val lblDir = Label("No folder selected")
@@ -48,6 +60,9 @@ class GUIS extends Application {
 
     def drawPackageInfo(pi: PackageInfo): Unit = pi.log() //todo Implement real drawing
 
+    def drawPackageInfo(pi: PackageInfo): Unit =
+      pi.log()
+      pi.classInfos subscribe { ci => drawClassNode(ci, index = 0)}
     btnDir setOnAction {_ =>
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
