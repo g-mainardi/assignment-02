@@ -11,7 +11,12 @@ object Analyzer {
   private val config = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_14)
   private val parser = new JavaParser(config)
   opaque type ClassName = String
-  case class ClassInfo(name: ClassName, dependencies: List[ClassName])
+  /**
+   * @param name full class name, e.g. pcd.ass02.MyClass
+   * @param dependencies  list of fully-qualified imported names
+   * @param packageName   package of the class (dot-separated)
+   */
+  case class ClassInfo(name: ClassName, dependencies: List[ClassName], packageName: String)
   case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
     def log(): Unit =
       val id = PackageId.next()
@@ -35,7 +40,12 @@ object Analyzer {
 
   private def getClassInfo(source: File): ClassInfo =
     val unit = parser.parse(source).getResult orElseThrow (() => IllegalArgumentException("Failed to parse [" + source + "]"))
-    ClassInfo(source.getName, unit.getImports.asScala.toList map (_.getName) map (_.toString))
+    val pkgName: String = Option(unit.getPackageDeclaration.get()) match
+      case Some(decl) => decl.getNameAsString
+      case _          => ""
+    val qualified: ClassName = s"$pkgName.${source.getName stripSuffix ".java"}"
+    val deps: List[ClassName] = unit.getImports.asScala.toList map(_.getNameAsString)
+    ClassInfo(qualified, deps, pkgName)
 
   private def scanPackage(source: File): Observable[ClassInfo] =
     Observable.create { emitter => Option(source.listFiles) match

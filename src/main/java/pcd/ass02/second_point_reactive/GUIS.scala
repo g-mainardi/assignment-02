@@ -28,7 +28,9 @@ class GUIS extends Application {
   private val depCounter   = AtomicInteger(0)
 
   private def drawClassNode(ci: ClassInfo): Unit =
-    graph addNode ci.name.toString setAttribute("ui.label", ci.name)
+    val node = graph addNode ci.name.toString
+    node setAttribute("ui.label", ci.name)
+    if ci.packageName.nonEmpty then node setAttribute("ui.class", ci.packageName)
 
   private def drawDependency(from: ClassName, to: ClassName): Unit =
     val edgeId: String = s"$from->$to"
