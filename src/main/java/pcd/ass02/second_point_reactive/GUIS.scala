@@ -16,17 +16,10 @@ import java.util.concurrent.atomic.AtomicInteger
 class GUIS extends Application {
   val WIDTH = 800; val HEIGHT = 600; val hSpacing = 10
 
-  private lazy val graph = SingleGraph("Class Dependencies")
-  private lazy val graphPane = createGraphPane()
-  private def createGraphPane(): FxViewPanel =
-    graph setAutoCreate true
-    graph setStrict false
-    val viewer: Viewer = FxViewer(graph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD)
-    viewer.enableAutoLayout()
-    viewer.addDefaultView(false).asInstanceOf[FxViewPanel]
-
   private val classCounter = AtomicInteger(0)
   private val depCounter   = AtomicInteger(0)
+
+  private lazy val graph = SingleGraph("Class Dependencies")
   extension (g: Graph)
     private def addMyEdge(idFromTo: (String, ClassName | String, ClassName | String)): Edge =
       g addEdge (idFromTo._1, idFromTo._2.toString, idFromTo._3.toString, true)
@@ -55,6 +48,39 @@ class GUIS extends Application {
       case None => graph addMyEdge (edgeId, from, to)
       case _    => ()
 
+  private def createGraphPane(): FxViewPanel =
+    graph setAutoCreate true
+    graph setStrict false
+    val css =
+      """
+          node {
+            size: 10px;
+            text-size: 10;
+            text-alignment: above;
+            fill-color: #CCCCCC;
+            stroke-mode: plain;
+          }
+          edge {
+            arrow-shape: arrow;
+            arrow-size: 8px, 4px;
+            fill-color: #444;
+          }
+          /* regole specifiche per pacchetti */
+          node.pcd_ass02_second_point_reactive {
+            fill-color: #ffcccc;    /* pacchetto reactive */
+          }
+          node.pcd_ass02_first_point_asynch {
+            fill-color: #ccffcc;    /* pacchetto asynch */
+          }
+          /* aggiungi quante classi vuoi: sostituisci i punti con underscore */
+        """
+    graph setAttribute("ui.stylesheet", css)
+    graph setAttribute("layout.weight", 5)
+
+    val viewer: Viewer = FxViewer(graph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD)
+    viewer.enableAutoLayout() // defines layout algorithm
+    (viewer addDefaultView false).asInstanceOf[FxViewPanel]
+
   override def start(primaryStage: Stage): Unit =
     val btnDir     = Button("Select Source")
     val lblDir     = Label("No folder selected")
@@ -63,6 +89,7 @@ class GUIS extends Application {
     val lblDeps    = Label("Dependencies: 0")
     val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps)
     val root = BorderPane()
+    val graphPane = createGraphPane()
     root setTop topBar; root setCenter graphPane
 
     def drawPackageInfo(pi: PackageInfo): Unit =
