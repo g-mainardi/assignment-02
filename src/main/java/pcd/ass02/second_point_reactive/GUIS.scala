@@ -74,11 +74,17 @@ class GUIS extends Application {
           ci.dependencies foreach{drawDependency(ci.name, _)}
         }
       }
+
+    def reset(): Unit =
+      graph.clear()
+      classCounter set 0
+      depCounter set 0
+
     btnDir setOnAction {_ =>
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
           lblDir setText sel.getAbsolutePath
-          btnRun setOnAction {_ => scanProject(sel) subscribe drawPackageInfo}
+          btnRun setOnAction {_ => reset(); scanProject(sel) subscribe drawPackageInfo}
         case _ => throw IllegalArgumentException("Directory selection failed!")
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
