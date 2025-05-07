@@ -49,6 +49,7 @@ class GUIS extends Application {
           pkgNode setAttribute("ui.class", pkgClass)
 
   private def drawDependency(from: ClassName, to: ClassName): Unit =
+    graph addNode to.toString setAttribute("ui.label", to)
     val edgeId: String = edgeIdFormat(from, to)
     Option(graph getEdge edgeId) match
       case None => graph addMyEdge (edgeId, from, to)
