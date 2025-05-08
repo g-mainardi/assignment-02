@@ -48,6 +48,10 @@ class GUIS extends Application {
     graph addMyNode to.toString //setAttribute("ui.label", to)
     graph.addMyEdge(from.toString, to.toString)
 
+  private def createGraphPane(): SmartGraphPanel[String, String] =
+    val graphView: SmartGraphPanel[String, String] = SmartGraphPanel(graph, SmartCircularSortedPlacementStrategy()) // layout circolare
+    graphView.setAutomaticLayout(true); // auto-layout force-directed
+    graphView
 
   override def start(primaryStage: Stage): Unit =
     val btnDir     = Button("Select Source")
