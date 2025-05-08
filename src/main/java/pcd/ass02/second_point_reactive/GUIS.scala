@@ -34,20 +34,10 @@ class GUIS extends Application {
       else Some(g.insertVertex(name))
 
   private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
-  private def drawClassNode(ci: ClassInfo): Unit =
+  private def drawClassNode(ci: ClassInfo, pkg: String): Unit =
     graph addMyNode ci.name.toString match
-      case Some(node) =>
-    //    node setAttribute("ui.label", ci.name)
-        if (ci.packageName.nonEmpty)
-//          val pkgClass = ci.packageName replace('.', '_')
-    //      node setAttribute("ui.class", pkgClass)
-          val pkgNode = graph addMyNode ci.packageName
-          pkgNode match
-            case None => graph.addMyEdge(ci.packageName, ci.name.toString)
-            case Some(vertex)    => ()
-      //      vertex setAttribute("ui.label", ci.packageName)
-      //      vertex setAttribute("ui.class", pkgClass)
-      case _ => println(s"Node already present! [${ci.name}]")
+      case Some(node) => graph.addMyEdge(pkg, ci.name.toString)
+      case _          => println(s"Node already present! [${ci.name}]")
 
   private def drawDependency(from: ClassName, to: ClassName): Unit =
     graph addMyNode to.toString //setAttribute("ui.label", to)
@@ -75,7 +65,9 @@ class GUIS extends Application {
         Platform.runLater { () =>
           lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
           lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
-          drawClassNode(ci)
+      graph addMyNode pi.name
+      graphPane.update()
+          drawClassNode(ci, pi.name)
           ci.dependencies foreach{drawDependency(ci.name, _)}
           graphPane.update()
         }
