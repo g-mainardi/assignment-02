@@ -52,9 +52,10 @@ class GUIS extends Application {
     val btnDir     = Button("Select Source")
     val lblDir     = Label("No folder selected")
     val btnRun     = Button("Analyze")
+    val btnOnOff   = Button("Start/Stop")
     val lblClasses = Label("Classes: 0")
     val lblDeps    = Label("Dependencies: 0")
-    val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps)
+    val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps, btnOnOff)
     val root = BorderPane()
     val graphPane: SmartGraphPanel[String, String] = createGraphPane()
     root setTop topBar; root setCenter graphPane
@@ -77,6 +78,11 @@ class GUIS extends Application {
 //      graph.clear()
       classCounter set 0
       depCounter set 0
+    var onOff = true
+    btnOnOff setOnAction {_ =>
+      onOff = !onOff
+      graphPane.setAutomaticLayout(onOff)
+    }
 
     btnDir setOnAction {_ =>
       Option(DirectoryChooser() showDialog primaryStage) match
