@@ -6,10 +6,9 @@ import javafx.stage.{DirectoryChooser, Stage}
 import javafx.scene.{Scene, control, layout}
 import control.*
 import layout.{BorderPane, HBox}
-import org.graphstream.graph.{Edge, Node, Graph}
-import org.graphstream.graph.implementations.SingleGraph
-import org.graphstream.ui.fx_viewer.{FxViewPanel, FxViewer}
-import org.graphstream.ui.view.Viewer
+import com.brunomnsilva.smartgraph.graphview.SmartGraphPanel
+import com.brunomnsilva.smartgraph.graphview.SmartCircularSortedPlacementStrategy
+import com.brunomnsilva.smartgraph.graph.{Edge, Graph, GraphEdgeList, InvalidVertexException, Vertex}
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -18,68 +17,37 @@ class GUIS extends Application {
 
   private val classCounter = AtomicInteger(0)
   private val depCounter   = AtomicInteger(0)
-
-  private lazy val graph = SingleGraph("Class Dependencies")
-  extension (g: Graph)
-    private def addMyEdge(idFromTo: (String, ClassName | String, ClassName | String)): Edge =
-      g addEdge (idFromTo._1, idFromTo._2.toString, idFromTo._3.toString, true)
-    private def addMyEdge(fromTo: (ClassName | String, ClassName | String)): Edge =
-      g addMyEdge (edgeIdFormat(fromTo._1, fromTo._2), fromTo._1, fromTo._2)
-    private def addMyNode(id: ClassName | String): Node = g addNode id.toString
+  private lazy val graph: Graph[String, String] = GraphEdgeList()
+  extension[A] (g: Graph[A, String])
+    def addMyEdge(id: String, from: A, to: A): Option[Edge[String, A]] =
+      try Some(g.insertEdge(from, to, id))
+      catch case e: InvalidVertexException => None
+    def addMyEdge(from: A, to: A): Option[Edge[String, A]] =
+      g.addMyEdge(edgeIdFormat(from.toString, to.toString), from, to)
+    def addMyNode(name: A): Option[Vertex[A]] =
+      try Some(g.insertVertex(name))
+      catch case e: InvalidVertexException => None
 
   private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
   private def drawClassNode(ci: ClassInfo): Unit =
-    val node = graph addMyNode ci.name
-    node setAttribute("ui.label", ci.name)
-    if (ci.packageName.nonEmpty)
-      val pkgClass = ci.packageName replace('.', '_')
-      node setAttribute("ui.class", pkgClass)
-      Option(graph getNode pkgClass) match
-        case Some(n) => graph addMyEdge (ci.packageName, ci.name)
-        case None    =>
+    graph addMyNode ci.name.toString match
+      case Some(node) =>
+    //    node setAttribute("ui.label", ci.name)
+        if (ci.packageName.nonEmpty)
+          val pkgClass = ci.packageName replace('.', '_')
+    //      node setAttribute("ui.class", pkgClass)
           val pkgNode = graph addMyNode pkgClass
-          pkgNode setAttribute("ui.label", ci.packageName)
-          pkgNode setAttribute("ui.class", pkgClass)
+          pkgNode match
+            case None => graph.addMyEdge(ci.packageName, ci.name.toString)
+            case Some(vertex)    => ()
+      //      vertex setAttribute("ui.label", ci.packageName)
+      //      vertex setAttribute("ui.class", pkgClass)
+      case _ => println(s"Node already present! [${ci.name}]")
 
   private def drawDependency(from: ClassName, to: ClassName): Unit =
-    graph addNode to.toString setAttribute("ui.label", to)
-    val edgeId: String = edgeIdFormat(from, to)
-    Option(graph getEdge edgeId) match
-      case None => graph addMyEdge (edgeId, from, to)
-      case _    => ()
+    graph addMyNode to.toString //setAttribute("ui.label", to)
+    graph.addMyEdge(from.toString, to.toString)
 
-  private def createGraphPane(): FxViewPanel =
-    graph setAutoCreate true
-    graph setStrict false
-    val css =
-      """
-          node {
-            size: 10px;
-            text-size: 10;
-            text-alignment: above;
-            fill-color: #CCCCCC;
-            stroke-mode: plain;
-          }
-          edge {
-            arrow-shape: arrow;
-            arrow-size: 8px, 4px;
-            fill-color: #444;
-          }
-          /* regole specifiche per pacchetti */
-          node.pcd_ass02_second_point_reactive {
-            fill-color: #ffcccc;    /* pacchetto reactive */
-          }
-          node.pcd_ass02_first_point_asynch {
-            fill-color: #ccffcc;    /* pacchetto asynch */
-          }
-          /* aggiungi quante classi vuoi: sostituisci i punti con underscore */
-        """
-    graph setAttribute("ui.stylesheet", css)
-    graph setAttribute("layout.weight", 5)
-
-    val viewer: Viewer = FxViewer(graph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD)
-    viewer.enableAutoLayout() // defines layout algorithm
-    (viewer addDefaultView false).asInstanceOf[FxViewPanel]
 
   override def start(primaryStage: Stage): Unit =
     val btnDir     = Button("Select Source")
@@ -89,7 +57,7 @@ class GUIS extends Application {
     val lblDeps    = Label("Dependencies: 0")
     val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps)
     val root = BorderPane()
-    val graphPane = createGraphPane()
+    val graphPane: SmartGraphPanel[String, String] = createGraphPane()
     root setTop topBar; root setCenter graphPane
 
     def drawPackageInfo(pi: PackageInfo): Unit =
@@ -100,11 +68,12 @@ class GUIS extends Application {
           lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
           drawClassNode(ci)
           ci.dependencies foreach{drawDependency(ci.name, _)}
+          graphPane.update()
         }
       }
 
     def reset(): Unit =
-      graph.clear()
+//      graph.clear()
       classCounter set 0
       depCounter set 0
 
@@ -118,4 +87,6 @@ class GUIS extends Application {
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
     primaryStage setTitle "Dependency Analyzer"
     primaryStage.show()
+    graphPane.init()
+
 }
