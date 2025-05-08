@@ -1,10 +1,11 @@
 package pcd.ass02.second_point_reactive
 
 import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
-import javafx.application.{Application, Platform}
+import javafx.application.Application
 import javafx.stage.{DirectoryChooser, Stage}
 import javafx.scene.{Scene, control, layout}
 import control.*
+import io.reactivex.rxjava3.core.Observable
 import layout.{BorderPane, HBox}
 import org.graphstream.graph.{Edge, Node, Graph}
 import org.graphstream.graph.implementations.SingleGraph
@@ -95,12 +96,10 @@ class GUIS extends Application {
     def drawPackageInfo(pi: PackageInfo): Unit =
       pi.log()
       pi.classInfos subscribe { (ci: ClassInfo) =>
-        Platform.runLater { () =>
-          lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
-          lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
-          drawClassNode(ci)
-          ci.dependencies foreach{drawDependency(ci.name, _)}
-        }
+        lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
+        lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
+        drawClassNode(ci)
+        ci.dependencies foreach{drawDependency(ci.name, _)}
       }
 
     def reset(): Unit =
@@ -108,14 +107,15 @@ class GUIS extends Application {
       classCounter set 0
       depCounter set 0
 
-    btnDir setOnAction {_ =>
-      Option(DirectoryChooser() showDialog primaryStage) match
-        case Some(sel) =>
-          lblDir setText sel.getAbsolutePath
-          btnRun setOnAction {_ => reset(); scanProject(sel) subscribe drawPackageInfo}
-        case _ => throw IllegalArgumentException("Directory selection failed!")
-    }
+    def initBtnDir(): Unit =
+      btnDir setOnAction {_ =>
+        Option(DirectoryChooser() showDialog primaryStage) match
+          case Some(sel) =>
+            lblDir setText sel.getAbsolutePath
+            btnRun setOnAction {_ => reset(); scanProject(sel) subscribe drawPackageInfo}
+          case _ => throw IllegalArgumentException("Directory selection failed!")
+      }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
     primaryStage setTitle "Dependency Analyzer"
-    primaryStage.show()
+    Observable fromCallable(() => primaryStage.show()) subscribe(_ => initBtnDir())
 }
