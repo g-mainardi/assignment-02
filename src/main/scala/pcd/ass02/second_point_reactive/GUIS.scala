@@ -1,17 +1,24 @@
 package pcd.ass02.second_point_reactive
 
-import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
-import javafx.application.{Application, Platform}
-import javafx.stage.{DirectoryChooser, Stage}
-import javafx.scene.{Scene, control, layout}
-import control.*
-import layout.{BorderPane, HBox}
-import com.brunomnsilva.smartgraph.graphview.SmartGraphPanel
-import com.brunomnsilva.smartgraph.graphview.SmartCircularSortedPlacementStrategy
+import Analyzer.{
+  ClassInfo,
+  ClassName,
+  PackageInfo,
+  scanProject
+}
 import com.brunomnsilva.smartgraph.graph.{Edge, Graph, GraphEdgeList, Vertex}
+import com.brunomnsilva.smartgraph.graphview.{
+  SmartCircularSortedPlacementStrategy,
+  SmartGraphPanel
+}
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.schedulers.Schedulers
 import javafx.application.Platform.runLater
+import javafx.application.{Application, Platform}
+import javafx.scene.control.*
+import javafx.scene.layout.{BorderPane, HBox}
+import javafx.scene.{Scene, control, layout}
+import javafx.stage.{DirectoryChooser, Stage}
 
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
