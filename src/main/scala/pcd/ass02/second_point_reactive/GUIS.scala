@@ -15,12 +15,21 @@ object MyGraph {
   opaque type Edge = Any
   opaque type Graph = Any
   extension (g: Graph)
-    def addMyEdge(idFromTo: (String, ClassName | String, ClassName | String)): Edge = ???
-    def addMyEdge(fromTo: (ClassName | String, ClassName | String)): Edge = ???
-    def addMyNode(id: ClassName | String): Node = ???
-    def getNode(id: ClassName | String): Option[Node] = ???
-    def getEdge(id: ClassName | String): Option[Edge] = ???
+    private def addMyEdge(idFromTo: (String, ClassName | String, ClassName | String)): Edge = ???
+    private def addMyEdge(fromTo: (ClassName | String, ClassName | String)): Edge = ???
+    private def addMyNode(id: ClassName | String): Node = ???
+    private def getNode(id: ClassName | String): Option[Node] = ???
+    private def getEdge(id: ClassName | String): Option[Edge] = ???
     def clear(): Unit = ???
+    def drawClassNode(ci: ClassInfo): Unit =
+      val node = g addMyNode ci.name
+      if (ci.packageName.nonEmpty)
+        g getNode ci.packageName match
+        case Some(n) => g addMyEdge (ci.packageName, ci.name)
+        case None    => g addMyNode ci.packageName
+    def drawDependency(from: ClassName, to: ClassName): Unit =
+      g addMyNode to
+      g addMyEdge(from, to)
 
   private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
 }
@@ -28,22 +37,6 @@ object MyGraph {
 class GUIS extends MainFrame {
   size = new Dimension(800, 600)
   title = "Dependency Analyzer"
-
-  private val classCounter = AtomicInteger(0)
-  private val depCounter   = AtomicInteger(0)
-
-  import pcd.ass02.second_point_reactive.MyGraph.*
-  private lazy val graph: Graph = ???
-  private def drawClassNode(ci: ClassInfo): Unit =
-    val node = graph addMyNode ci.name
-    if (ci.packageName.nonEmpty)
-      graph getNode ci.packageName match
-        case Some(n) => graph addMyEdge (ci.packageName, ci.name)
-        case None    => graph addMyNode ci.packageName
-  private def drawDependency(from: ClassName, to: ClassName): Unit =
-    graph addMyNode to
-    graph addMyEdge(from, to)
-
   private val lblDir      = Label("No folder selected")
   private val btnDir      = new Button("Select Source")
   private val btnRun      = new Button("Analyze")
@@ -57,19 +50,22 @@ class GUIS extends MainFrame {
       ???
     preferredSize = new Dimension(size.width - 20, size.height - 100)
   }
-
   contents = new BorderPanel {
     layout(topBar) = BorderPanel.Position.North
     layout(graphPane) = BorderPanel.Position.Center
   }
 
+  private val classCounter = AtomicInteger(0)
+  private val depCounter   = AtomicInteger(0)
+  import pcd.ass02.second_point_reactive.MyGraph.*
+  private lazy val graph: Graph = ???
   private def drawPackageInfo(pi: PackageInfo): Unit =
     pi.log()
     pi.classInfos subscribe { (ci: ClassInfo) =>
       lblClasses.text = s"Classes: ${classCounter.incrementAndGet()}"
       lblDeps.text = s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
-      drawClassNode(ci)
-      ci.dependencies foreach{drawDependency(ci.name, _)}
+      graph drawClassNode ci
+      ci.dependencies foreach{graph drawDependency(ci.name, _)}
       graphPane.repaint()
     }
 
@@ -87,12 +83,13 @@ class GUIS extends MainFrame {
     }
   btnDir.reactions += {
     case event.ButtonClicked(_) =>
+      import FileChooser.*
       val chooser = new FileChooser(new File(".")) {
         title = "Seleziona una Directory"
-        fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
+        fileSelectionMode = SelectionMode.DirectoriesOnly
       }
       chooser.showOpenDialog(null) match
-        case FileChooser.Result.Approve =>
+        case Result.Approve =>
           val selectedFile = chooser.selectedFile
           lblDir.text = s"Directory selezionata: ${selectedFile.getAbsolutePath}"
           initBtnRun(selectedFile)
