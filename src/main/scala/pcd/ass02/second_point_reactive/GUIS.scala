@@ -1,7 +1,6 @@
 package pcd.ass02.second_point_reactive
 
-import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
-import io.reactivex.rxjava3.schedulers.Schedulers
+import pcd.ass02.second_point_reactive.Analyzer.*
 
 import java.io.File
 import scala.swing.{BorderPanel, Button, Dimension, FileChooser, FlowPanel, Label, MainFrame, Panel, SimpleSwingApplication, event}
@@ -69,12 +68,12 @@ class GUIS extends MainFrame {
   private def drawPackageInfo(pi: PackageInfo): Unit =
     pi.log()
     pi.classInfos subscribe { (ci: ClassInfo) =>
-        lblClasses.text = s"Classes: ${classCounter.incrementAndGet()}"
-        lblDeps.text = s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
-        drawClassNode(ci)
-        ci.dependencies foreach{drawDependency(ci.name, _)}
-        graphPane.repaint()
-      }
+      lblClasses.text = s"Classes: ${classCounter.incrementAndGet()}"
+      lblDeps.text = s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
+      drawClassNode(ci)
+      ci.dependencies foreach{drawDependency(ci.name, _)}
+      graphPane.repaint()
+    }
 
   def reset(): Unit =
     graph.clear()
