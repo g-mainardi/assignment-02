@@ -1,17 +1,9 @@
 package pcd.ass02.second_point_reactive
 
-import Analyzer.{
-  ClassInfo,
-  ClassName,
-  PackageInfo,
-  scanProject
-}
+import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
 import com.brunomnsilva.smartgraph.graph.{Edge, Graph, GraphEdgeList, Vertex}
-import com.brunomnsilva.smartgraph.graphview.{
-  SmartCircularSortedPlacementStrategy,
-  SmartGraphPanel
-}
-import io.reactivex.rxjava3.core.Scheduler
+import com.brunomnsilva.smartgraph.graphview.{SmartCircularSortedPlacementStrategy, SmartGraphPanel}
+import io.reactivex.rxjava3.core.{Observable, Scheduler}
 import io.reactivex.rxjava3.schedulers.Schedulers
 import javafx.application.Platform.runLater
 import javafx.application.{Application, Platform}
@@ -84,7 +76,7 @@ class GUIS extends Application {
           drawClassNode(ci, pi.name)
           ci.dependencies foreach{drawDependency(ci.name, _)}
           graphPane.update(),
-        (err: Throwable) => println(s"PI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
+        (err: Throwable) => println(s"CI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
         () => ()
       )
 
@@ -108,6 +100,25 @@ class GUIS extends Application {
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
     primaryStage setTitle "Dependency Analyzer"
     primaryStage.show()
-    graphPane.init()
-
+    val file = File("INSERT_PATH")
+    Observable
+      .fromCallable(() => primaryStage.show())
+      .doOnNext(_ => println("Stage prepared"))
+      .map(_ => graphPane.init())
+      .doOnNext(_ => println("Graph initialized"))
+      .blockingSubscribe{_ =>
+        scanProject(file)
+          .subscribeOn(Schedulers.computation())
+          .observeOn(Schedulers.io())
+          .doOnNext((pi: PackageInfo) => pi.log())
+          .observeOn(fxScheduler)
+          .subscribe(
+            (pi: PackageInfo) => {
+              println(s"PI draw: ${Thread.currentThread().getName} is drawing")
+              drawPackageInfo(pi)
+            },
+            (err: Throwable) => println(s"PI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
+            () => {graphPane setAutomaticLayout false; onOff = false}
+          )
+      }
 }

@@ -50,6 +50,7 @@ object Analyzer {
       case _          => ""
     val qualified: ClassName = source.getName stripSuffix ".java"
     val deps: List[ClassName] = unit.getImports.asScala.toList map(_.getNameAsString)
+    Thread.sleep(1000)
     ClassInfo(qualified, deps)
 
   private def scanPackage(source: File): Observable[ClassInfo] =
