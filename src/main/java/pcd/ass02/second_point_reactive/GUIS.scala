@@ -39,9 +39,9 @@ class GUIS extends Application {
       case Some(node) =>
     //    node setAttribute("ui.label", ci.name)
         if (ci.packageName.nonEmpty)
-          val pkgClass = ci.packageName replace('.', '_')
+//          val pkgClass = ci.packageName replace('.', '_')
     //      node setAttribute("ui.class", pkgClass)
-          val pkgNode = graph addMyNode pkgClass
+          val pkgNode = graph addMyNode ci.packageName
           pkgNode match
             case None => graph.addMyEdge(ci.packageName, ci.name.toString)
             case Some(vertex)    => ()
