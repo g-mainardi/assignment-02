@@ -11,6 +11,7 @@ import com.brunomnsilva.smartgraph.graphview.SmartCircularSortedPlacementStrateg
 import com.brunomnsilva.smartgraph.graph.{Edge, Graph, GraphEdgeList, InvalidVertexException, Vertex}
 
 import java.util.concurrent.atomic.AtomicInteger
+import scala.jdk.CollectionConverters.*
 
 class GUIS extends Application {
   val WIDTH = 800; val HEIGHT = 600; val hSpacing = 10
@@ -19,14 +20,18 @@ class GUIS extends Application {
   private val depCounter   = AtomicInteger(0)
   private lazy val graph: Graph[String, String] = GraphEdgeList()
   extension[A] (g: Graph[A, String])
-    def addMyEdge(id: String, from: A, to: A): Option[Edge[String, A]] =
-      try Some(g.insertEdge(from, to, id))
-      catch case e: InvalidVertexException => None
-    def addMyEdge(from: A, to: A): Option[Edge[String, A]] =
+    private def containsVertex(e: A): Boolean = g.vertices().asScala.map(_.element()).toSet.contains(e)
+    private def containsEdge(e: String): Boolean = g.edges().asScala.map(_.element()).toSet.contains(e)
+    private def addMyEdge(id: String, from: A, to: A): Option[Edge[String, A]] =
+      if g.containsEdge(id)
+      then None
+      else Some(g.insertEdge(from, to, id))
+    private def addMyEdge(from: A, to: A): Option[Edge[String, A]] =
       g.addMyEdge(edgeIdFormat(from.toString, to.toString), from, to)
-    def addMyNode(name: A): Option[Vertex[A]] =
-      try Some(g.insertVertex(name))
-      catch case e: InvalidVertexException => None
+    private def addMyNode(name: A): Option[Vertex[A]] =
+      if g.containsVertex(name)
+      then None
+      else Some(g.insertVertex(name))
 
   private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
   private def drawClassNode(ci: ClassInfo): Unit =
