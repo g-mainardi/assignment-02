@@ -8,8 +8,12 @@ import control.*
 import layout.{BorderPane, HBox}
 import com.brunomnsilva.smartgraph.graphview.SmartGraphPanel
 import com.brunomnsilva.smartgraph.graphview.SmartCircularSortedPlacementStrategy
-import com.brunomnsilva.smartgraph.graph.{Edge, Graph, GraphEdgeList, InvalidVertexException, Vertex}
+import com.brunomnsilva.smartgraph.graph.{Edge, Graph, GraphEdgeList, Vertex}
+import io.reactivex.rxjava3.core.Scheduler
+import io.reactivex.rxjava3.schedulers.Schedulers
+import javafx.application.Platform.runLater
 
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import scala.jdk.CollectionConverters.*
 
@@ -48,6 +52,8 @@ class GUIS extends Application {
     graphView.setAutomaticLayout(true); // auto-layout force-directed
     graphView
 
+  private lazy val fxScheduler: Scheduler = Schedulers.from(Platform.runLater(_))
+
   override def start(primaryStage: Stage): Unit =
     val btnDir     = Button("Select Source")
     val lblDir     = Label("No folder selected")
@@ -61,18 +67,19 @@ class GUIS extends Application {
     root setTop topBar; root setCenter graphPane
 
     def drawPackageInfo(pi: PackageInfo): Unit =
-      pi.log()
-      pi.classInfos subscribe { (ci: ClassInfo) =>
-        Platform.runLater { () =>
-          lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
-          lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
       graph addMyNode pi.name
       graphPane.update()
+      pi.classInfos observeOn Schedulers.computation() subscribe (
+        (ci: ClassInfo) =>
+          // todo da eseguire su JavaFx thread?
+//          lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
+//          lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
           drawClassNode(ci, pi.name)
           ci.dependencies foreach{drawDependency(ci.name, _)}
-          graphPane.update()
-        }
-      }
+          graphPane.update(),
+        (err: Throwable) => println(s"PI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
+        () => ()
+      )
 
     def reset(): Unit =
 //      graph.clear()
