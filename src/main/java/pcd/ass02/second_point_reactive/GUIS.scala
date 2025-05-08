@@ -1,121 +1,109 @@
 package pcd.ass02.second_point_reactive
 
 import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
-import javafx.application.Application
-import javafx.stage.{DirectoryChooser, Stage}
-import javafx.scene.{Scene, control, layout}
-import control.*
-import io.reactivex.rxjava3.core.Observable
-import layout.{BorderPane, HBox}
-import org.graphstream.graph.{Edge, Node, Graph}
-import org.graphstream.graph.implementations.SingleGraph
-import org.graphstream.ui.fx_viewer.{FxViewPanel, FxViewer}
-import org.graphstream.ui.view.Viewer
+import io.reactivex.rxjava3.schedulers.Schedulers
 
+import java.io.File
+import scala.swing.{BorderPanel, Button, Dimension, FileChooser, FlowPanel, Label, MainFrame, Panel, SimpleSwingApplication, event}
 import java.util.concurrent.atomic.AtomicInteger
 
-class GUIS extends Application {
-  val WIDTH = 800; val HEIGHT = 600; val hSpacing = 10
+object Example extends SimpleSwingApplication {
+  def top = new GUIS()
+}
+
+class GUIS extends MainFrame {
+  val WIDTH = 800; val HEIGHT = 600; private val hSpacing = 10
 
   private val classCounter = AtomicInteger(0)
   private val depCounter   = AtomicInteger(0)
 
-  private lazy val graph = SingleGraph("Class Dependencies")
+  type Node = Any
+  type Edge = Any
+  type Graph = Any
+  private lazy val graph: Graph = ???
   extension (g: Graph)
-    private def addMyEdge(idFromTo: (String, ClassName | String, ClassName | String)): Edge =
-      g addEdge (idFromTo._1, idFromTo._2.toString, idFromTo._3.toString, true)
-    private def addMyEdge(fromTo: (ClassName | String, ClassName | String)): Edge =
-      g addMyEdge (edgeIdFormat(fromTo._1, fromTo._2), fromTo._1, fromTo._2)
-    private def addMyNode(id: ClassName | String): Node = g addNode id.toString
+    private def addMyEdge(idFromTo: (String, ClassName | String, ClassName | String)): Edge = ???
+    private def addMyEdge(fromTo: (ClassName | String, ClassName | String)): Edge = ???
+    private def addMyNode(id: ClassName | String): Node = ???
+    private def getNode(id: ClassName | String): Option[Node] = ???
+    private def getEdge(id: ClassName | String): Option[Edge] = ???
+    private def clear(): Unit = ???
 
   private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
   private def drawClassNode(ci: ClassInfo): Unit =
     val node = graph addMyNode ci.name
-    node setAttribute("ui.label", ci.name)
     if (ci.packageName.nonEmpty)
-      val pkgClass = ci.packageName replace('.', '_')
-      node setAttribute("ui.class", pkgClass)
-      Option(graph getNode pkgClass) match
+      graph getNode ci.packageName match
         case Some(n) => graph addMyEdge (ci.packageName, ci.name)
-        case None    =>
-          val pkgNode = graph addMyNode pkgClass
-          pkgNode setAttribute("ui.label", ci.packageName)
-          pkgNode setAttribute("ui.class", pkgClass)
-
+        case None    => graph addMyNode ci.packageName
   private def drawDependency(from: ClassName, to: ClassName): Unit =
-    graph addNode to.toString setAttribute("ui.label", to)
+    graph addMyNode to
     val edgeId: String = edgeIdFormat(from, to)
-    Option(graph getEdge edgeId) match
+    graph getEdge edgeId match
       case None => graph addMyEdge (edgeId, from, to)
       case _    => ()
+  private def createGraphPane(): Panel =
+    new Panel {
+      override def paintComponent(g: scala.swing.Graphics2D): Unit =
+        super.paintComponent(g)
+        ???
+      preferredSize = new Dimension(WIDTH - 20, HEIGHT - 100)
+    }
+  val lblDir      = Label("No folder selected")
+  val btnDir      = new Button("Select Source")
+  val btnRun      = new Button("Analyze")
+  val lblClasses  = Label("Classes: 0")
+  val lblDeps     = Label("Dependencies: 0")
+  val topBar      = new FlowPanel(FlowPanel.Alignment.Left)(btnDir, lblDir, btnRun, lblClasses, lblDeps)
+  topBar.hGap = hSpacing
 
-  private def createGraphPane(): FxViewPanel =
-    graph setAutoCreate true
-    graph setStrict false
-    val css =
-      """
-          node {
-            size: 10px;
-            text-size: 10;
-            text-alignment: above;
-            fill-color: #CCCCCC;
-            stroke-mode: plain;
-          }
-          edge {
-            arrow-shape: arrow;
-            arrow-size: 8px, 4px;
-            fill-color: #444;
-          }
-          /* regole specifiche per pacchetti */
-          node.pcd_ass02_second_point_reactive {
-            fill-color: #ffcccc;    /* pacchetto reactive */
-          }
-          node.pcd_ass02_first_point_asynch {
-            fill-color: #ccffcc;    /* pacchetto asynch */
-          }
-          /* aggiungi quante classi vuoi: sostituisci i punti con underscore */
-        """
-    graph setAttribute("ui.stylesheet", css)
-    graph setAttribute("layout.weight", 5)
+  val graphPane: Panel = createGraphPane()
 
-    val viewer: Viewer = FxViewer(graph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD)
-    viewer.enableAutoLayout() // defines layout algorithm
-    (viewer addDefaultView false).asInstanceOf[FxViewPanel]
+  val root: BorderPanel = new BorderPanel {
+    layout(topBar) = BorderPanel.Position.North
+    layout(graphPane) = BorderPanel.Position.Center
+  }
 
-  override def start(primaryStage: Stage): Unit =
-    val btnDir     = Button("Select Source")
-    val lblDir     = Label("No folder selected")
-    val btnRun     = Button("Analyze")
-    val lblClasses = Label("Classes: 0")
-    val lblDeps    = Label("Dependencies: 0")
-    val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps)
-    val root = BorderPane()
-    val graphPane = createGraphPane()
-    root setTop topBar; root setCenter graphPane
+  contents = root
 
-    def drawPackageInfo(pi: PackageInfo): Unit =
-      pi.log()
-      pi.classInfos subscribe { (ci: ClassInfo) =>
-        lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
-        lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
+  private def drawPackageInfo(pi: PackageInfo): Unit =
+    pi.log()
+    pi.classInfos subscribe { (ci: ClassInfo) =>
+        lblClasses.text = s"Classes: ${classCounter.incrementAndGet()}"
+        lblDeps.text = s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
         drawClassNode(ci)
         ci.dependencies foreach{drawDependency(ci.name, _)}
+        graphPane.repaint()
       }
 
-    def reset(): Unit =
-      graph.clear()
-      classCounter set 0
-      depCounter set 0
+  def reset(): Unit =
+    graph.clear()
+    classCounter set 0
+    depCounter set 0
+    graphPane.repaint()
 
-    def initBtnDir(): Unit =
-      btnDir setOnAction {_ =>
-        Option(DirectoryChooser() showDialog primaryStage) match
-          case Some(sel) =>
-            lblDir setText sel.getAbsolutePath
-            btnRun setOnAction {_ => reset(); scanProject(sel) subscribe drawPackageInfo}
-          case _ => throw IllegalArgumentException("Directory selection failed!")
+  private def initBtnRun(file: File): Unit =
+    btnRun.reactions += {
+      case event.ButtonClicked(_) =>
+        reset()
+        scanProject(file) subscribe drawPackageInfo
+    }
+
+  btnDir.reactions += {
+    case event.ButtonClicked(_) =>
+      val chooser = new FileChooser(new File(".")) {
+        title = "Seleziona una Directory"
+        fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
       }
-    primaryStage setScene Scene(root, WIDTH, HEIGHT)
-    primaryStage setTitle "Dependency Analyzer"
-    Observable fromCallable(() => primaryStage.show()) subscribe(_ => initBtnDir())
+      chooser.showOpenDialog(null) match
+        case FileChooser.Result.Approve =>
+          val selectedFile = chooser.selectedFile
+          lblDir.text = s"Directory selezionata: ${selectedFile.getAbsolutePath}"
+          initBtnRun(selectedFile)
+        case _ => lblDir.text = "Selezione directory annullata"
+  }
+
+  size = new Dimension(WIDTH, HEIGHT)
+  title = "Dependency Analyzer"
+  open()
 }
