@@ -14,9 +14,8 @@ object Analyzer {
   /**
    * @param name full class name, e.g. pcd.ass02.MyClass
    * @param dependencies  list of fully-qualified imported names
-   * @param packageName   package of the class (dot-separated)
    */
-  case class ClassInfo(name: ClassName, dependencies: List[ClassName], packageName: String)
+  case class ClassInfo(name: ClassName, dependencies: List[ClassName])
   case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
     def log(): Unit =
 //      val id = PackageId.next()
@@ -46,9 +45,9 @@ object Analyzer {
     val pkgName: String = Option(unit.getPackageDeclaration.get()) match
       case Some(decl) => decl.getNameAsString
       case _          => ""
-    val qualified: ClassName = s"$pkgName.${source.getName stripSuffix ".java"}"
+    val qualified: ClassName = source.getName stripSuffix ".java"
     val deps: List[ClassName] = unit.getImports.asScala.toList map(_.getNameAsString)
-    ClassInfo(qualified, deps, pkgName)
+    ClassInfo(qualified, deps)
 
   private def scanPackage(source: File): Observable[ClassInfo] =
     Observable.create { emitter => Option(source.listFiles) match
