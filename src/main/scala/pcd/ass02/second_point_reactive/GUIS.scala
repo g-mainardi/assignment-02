@@ -10,25 +10,30 @@ object Example extends SimpleSwingApplication {
   def top = new GUIS()
 }
 
+object MyGraph {
+  opaque type Node = Any
+  opaque type Edge = Any
+  opaque type Graph = Any
+  extension (g: Graph)
+    def addMyEdge(idFromTo: (String, ClassName | String, ClassName | String)): Edge = ???
+    def addMyEdge(fromTo: (ClassName | String, ClassName | String)): Edge = ???
+    def addMyNode(id: ClassName | String): Node = ???
+    def getNode(id: ClassName | String): Option[Node] = ???
+    def getEdge(id: ClassName | String): Option[Edge] = ???
+    def clear(): Unit = ???
+
+  private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
+}
+
 class GUIS extends MainFrame {
-  val WIDTH = 800; val HEIGHT = 600; private val hSpacing = 10
+  size = new Dimension(800, 600)
+  title = "Dependency Analyzer"
 
   private val classCounter = AtomicInteger(0)
   private val depCounter   = AtomicInteger(0)
 
-  type Node = Any
-  type Edge = Any
-  type Graph = Any
+  import pcd.ass02.second_point_reactive.MyGraph.*
   private lazy val graph: Graph = ???
-  extension (g: Graph)
-    private def addMyEdge(idFromTo: (String, ClassName | String, ClassName | String)): Edge = ???
-    private def addMyEdge(fromTo: (ClassName | String, ClassName | String)): Edge = ???
-    private def addMyNode(id: ClassName | String): Node = ???
-    private def getNode(id: ClassName | String): Option[Node] = ???
-    private def getEdge(id: ClassName | String): Option[Edge] = ???
-    private def clear(): Unit = ???
-
-  private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
   private def drawClassNode(ci: ClassInfo): Unit =
     val node = graph addMyNode ci.name
     if (ci.packageName.nonEmpty)
@@ -37,33 +42,26 @@ class GUIS extends MainFrame {
         case None    => graph addMyNode ci.packageName
   private def drawDependency(from: ClassName, to: ClassName): Unit =
     graph addMyNode to
-    val edgeId: String = edgeIdFormat(from, to)
-    graph getEdge edgeId match
-      case None => graph addMyEdge (edgeId, from, to)
-      case _    => ()
-  private def createGraphPane(): Panel =
-    new Panel {
-      override def paintComponent(g: scala.swing.Graphics2D): Unit =
-        super.paintComponent(g)
-        ???
-      preferredSize = new Dimension(WIDTH - 20, HEIGHT - 100)
-    }
-  val lblDir      = Label("No folder selected")
-  val btnDir      = new Button("Select Source")
-  val btnRun      = new Button("Analyze")
-  val lblClasses  = Label("Classes: 0")
-  val lblDeps     = Label("Dependencies: 0")
-  val topBar      = new FlowPanel(FlowPanel.Alignment.Left)(btnDir, lblDir, btnRun, lblClasses, lblDeps)
-  topBar.hGap = hSpacing
+    graph addMyEdge(from, to)
 
-  val graphPane: Panel = createGraphPane()
+  private val lblDir      = Label("No folder selected")
+  private val btnDir      = new Button("Select Source")
+  private val btnRun      = new Button("Analyze")
+  private val lblClasses  = Label("Classes: 0")
+  private val lblDeps     = Label("Dependencies: 0")
+  private val topBar      = new FlowPanel(FlowPanel.Alignment.Left)(btnDir, lblDir, btnRun, lblClasses, lblDeps)
+  topBar.hGap = 10
+  private val graphPane: Panel = new Panel {
+    override def paintComponent(g: scala.swing.Graphics2D): Unit =
+      super.paintComponent(g)
+      ???
+    preferredSize = new Dimension(size.width - 20, size.height - 100)
+  }
 
-  val root: BorderPanel = new BorderPanel {
+  contents = new BorderPanel {
     layout(topBar) = BorderPanel.Position.North
     layout(graphPane) = BorderPanel.Position.Center
   }
-
-  contents = root
 
   private def drawPackageInfo(pi: PackageInfo): Unit =
     pi.log()
@@ -87,7 +85,6 @@ class GUIS extends MainFrame {
         reset()
         scanProject(file) subscribe drawPackageInfo
     }
-
   btnDir.reactions += {
     case event.ButtonClicked(_) =>
       val chooser = new FileChooser(new File(".")) {
@@ -101,8 +98,5 @@ class GUIS extends MainFrame {
           initBtnRun(selectedFile)
         case _ => lblDir.text = "Selezione directory annullata"
   }
-
-  size = new Dimension(WIDTH, HEIGHT)
-  title = "Dependency Analyzer"
   open()
 }
