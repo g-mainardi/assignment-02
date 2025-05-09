@@ -66,13 +66,16 @@ class GUIS extends Application {
     root setTop topBar; root setCenter graphPane
 
     def drawPackageInfo(pi: PackageInfo): Unit =
+      println(s"Package: ${pi.name}")
       graph addMyNode pi.name
       graphPane.update()
-      pi.classInfos observeOn Schedulers.computation() subscribe (
+      pi.classInfos subscribe (
         (ci: ClassInfo) =>
-          // todo da eseguire su JavaFx thread?
-//          lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
-//          lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
+          ci.log()
+          Platform.runLater { () =>
+            lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
+            lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
+          }
           drawClassNode(ci, pi.name)
           ci.dependencies foreach{drawDependency(ci.name, _)}
           graphPane.update(),
@@ -106,19 +109,13 @@ class GUIS extends Application {
       .doOnNext(_ => println("Stage prepared"))
       .map(_ => graphPane.init())
       .doOnNext(_ => println("Graph initialized"))
-      .blockingSubscribe{_ =>
+      .observeOn(Schedulers.io)
+      .subscribe {_ =>
         scanProject(file)
-          .subscribeOn(Schedulers.computation())
-          .observeOn(Schedulers.io())
-          .doOnNext((pi: PackageInfo) => pi.log())
-          .observeOn(fxScheduler)
           .subscribe(
-            (pi: PackageInfo) => {
-              println(s"PI draw: ${Thread.currentThread().getName} is drawing")
-              drawPackageInfo(pi)
-            },
+            (pi: PackageInfo) => drawPackageInfo(pi),
             (err: Throwable) => println(s"PI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
-            () => {graphPane setAutomaticLayout false; onOff = false}
+            () => ()
           )
       }
 }

@@ -15,7 +15,11 @@ object Analyzer {
    * @param name full class name, e.g. pcd.ass02.MyClass
    * @param dependencies  list of fully-qualified imported names
    */
-  case class ClassInfo(name: ClassName, dependencies: List[ClassName])
+  case class ClassInfo(name: ClassName, dependencies: List[ClassName]) {
+    def log(): Unit = 
+      println(s"\tClass: ${name.replace(".java", "")}")
+      dependencies foreach{d => println(s"\t\t$d")}
+  }
   case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
     def log(): Unit =
       println(s"Package: $name")
@@ -44,6 +48,7 @@ object Analyzer {
   }
 
   private def getClassInfo(source: File): ClassInfo =
+    Thread.sleep(100)
     val unit = parser.parse(source).getResult orElseThrow (() => IllegalArgumentException("Failed to parse [" + source + "]"))
     val pkgName: String = Option(unit.getPackageDeclaration.get()) match
       case Some(decl) => decl.getNameAsString
