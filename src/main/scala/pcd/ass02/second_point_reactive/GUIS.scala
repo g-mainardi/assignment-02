@@ -23,27 +23,26 @@ class GUIS extends Application {
   private val depCounter   = AtomicInteger(0)
   private lazy val graph: Graph[String, String] = GraphEdgeList()
   extension[A] (g: Graph[A, String])
-    private def containsVertex(e: A): Boolean = g.vertices().asScala.map(_.element()).toSet.contains(e)
-    private def containsEdge(e: String): Boolean = g.edges().asScala.map(_.element()).toSet.contains(e)
+    private def containsVertex(e: A): Boolean = g.vertices().asScala.map(_.element()).toSet contains e
+    private def containsEdge(e: String): Boolean = g.edges().asScala.map(_.element()).toSet contains e
     private def addMyEdge(id: String, from: A, to: A): Option[Edge[String, A]] =
-      if g.containsEdge(id)
+      if g containsEdge id
       then None
       else Some(g.insertEdge(from, to, id))
     private def addMyEdge(from: A, to: A): Option[Edge[String, A]] =
       g.addMyEdge(edgeIdFormat(from.toString, to.toString), from, to)
     private def addMyNode(name: A): Option[Vertex[A]] =
-      if g.containsVertex(name)
+      if g containsVertex name
       then None
       else Some(g.insertVertex(name))
 
   private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
   private def drawClassNode(ci: ClassInfo, pkg: String): Unit =
-    graph addMyNode ci.name.toString match
-      case Some(node) => graph.addMyEdge(pkg, ci.name.toString)
-      case _          => println(s"Node already present! [${ci.name}]")
+    graph addMyNode ci.name.toString
+    graph.addMyEdge(pkg, ci.name.toString)
 
   private def drawDependency(from: ClassName, to: ClassName): Unit =
-    graph addMyNode to.toString //setAttribute("ui.label", to)
+    graph addMyNode to.toString
     graph.addMyEdge(from.toString, to.toString)
 
   private def createGraphPane(): SmartGraphPanel[String, String] =
