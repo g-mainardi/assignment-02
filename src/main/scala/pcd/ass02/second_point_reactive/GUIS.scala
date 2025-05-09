@@ -84,10 +84,10 @@ class GUIS extends Application {
 //      graph.clear()
       classCounter set 0
       depCounter set 0
-    var onOff = true
     btnOnOff setOnAction {_ =>
-      onOff = !onOff
-      graphPane.setAutomaticLayout(onOff)
+      val newValue = !graphPane.automaticLayoutProperty.get()
+      println(s"Setting automatic layout to $newValue")
+      graphPane setAutomaticLayout newValue
     }
 
     btnDir setOnAction {_ =>
