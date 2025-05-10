@@ -16,6 +16,9 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import scala.jdk.CollectionConverters.*
 
+/**
+ * Add methods, styles and definitions to the smartgraph Library Class.
+ */
 object GraphUtils {
   enum VertexType(val shape: String, val radius: Double) {
     case PACKAGE    extends VertexType("SQUARE",   9.0)
@@ -36,17 +39,35 @@ object GraphUtils {
       getVertex(node) match
         case Some(n) => n
         case _ => (g insertVertex node).element()
-    def addMyEdge(from: MyNode, to: MyNode): MyNode =
-      g.addMyEdge(edgeIdFormat(from.id, to.id), from, to)
+    /**
+     * Create the Edge between the two Nodes and returns the destination one.
+     */
+    def addMyEdge(from: MyNode, to: MyNode): MyNode = g.addMyEdge(edgeIdFormat(from.id, to.id), from, to)
+    /**
+     * Add a Node of Package type and returns it, if it already exists, then it's yield.
+     */
     def addPackage(name: String): MyNode = addMyNode(name, PACKAGE)
+    /**
+     * Add a Node of Class type and returns it, if it already exists, then it's yield.
+     */
     def addClass(name: ClassName): MyNode = addMyNode(name.toString, CLASS)
+    /**
+     * Add a Node of Dependency type and returns it, if it already exists, then it's yield.
+     */
     def addDependency(name: ClassName): MyNode = addMyNode(name.toString, DEPENDENCY)
+    /**
+     * Create a new dynamic Panel View from the Graph with automatic layout and configuration for the nodes
+     *  and returns it.
+     */
     def createGraphPane: SmartGraphPanel[MyNode, String] =
       val graphView: SmartGraphPanel[MyNode, String] = SmartGraphPanel(g, SmartCircularSortedPlacementStrategy())
       graphView setAutomaticLayout true
       graphView setVertexShapeTypeProvider ((n: MyNode) => n.vertexType.shape)
       graphView setVertexRadiusProvider ((n: MyNode) => n.vertexType.radius)
       graphView
+    /**
+     * Removes all the Nodes and Edges from the Graph.
+     */
     def clear(): Unit =
       g.vertices forEach{g removeVertex _}
       g.edges    forEach{g removeEdge  _}
@@ -59,7 +80,14 @@ class GUIS extends Application {
 
   import GraphUtils.MyNode
   private lazy val graph: Digraph[MyNode, String] = DigraphEdgeList()
+
+  /**
+   * Add a Class Node to the Graph, or yield it if it already exists, and link it to the parent Package.
+   */
   private def drawClassNode(pkg: MyNode, c: ClassName): MyNode = graph.addMyEdge(pkg, graph addClass c)
+  /**
+   * Add a Dependency Node to the Graph, or yield it if it already exists, and link it to the parent Class.
+   */
   private def drawDependency(from: MyNode, to: ClassName): MyNode = graph.addMyEdge(from, graph addDependency to)
 
   private lazy val fxScheduler: Scheduler = Schedulers.from(Platform.runLater(_))
@@ -76,6 +104,9 @@ class GUIS extends Application {
     val graphPane: SmartGraphPanel[MyNode, String] = graph.createGraphPane
     root setTop topBar; root setCenter graphPane
 
+    /**
+     * Draw the Package Node and its children (reactively) in the Graph and updates the view.
+     */
     def drawPackageInfo(pi: PackageInfo): Unit =
       println(s"Package: ${pi.name}")
       val pkgNode = graph addPackage pi.name
@@ -96,11 +127,15 @@ class GUIS extends Application {
         () => ()
       )
 
+    /**
+     * Reset the Graph and the counters.
+     */
     def reset(): Unit =
       graph.clear()
       graphPane.update()
       classCounter set 0
       depCounter set 0
+
     btnOnOff setOnAction {_ =>
       val newValue = !graphPane.automaticLayoutProperty.get()
       println(s"Setting automatic layout to $newValue")
