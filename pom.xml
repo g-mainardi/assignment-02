@@ -116,6 +116,14 @@
                 <configuration>
                     <mainClass>pcd.ass02.second_point_reactive.GUIS</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>run-javafx</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
