@@ -1,8 +1,8 @@
 package pcd.ass02.second_point_reactive
 
 import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
-import com.brunomnsilva.smartgraph.graph.{Edge, Graph, DigraphEdgeList, Vertex}
-import com.brunomnsilva.smartgraph.graphview.{SmartCircularSortedPlacementStrategy, SmartGraphPanel}
+import com.brunomnsilva.smartgraph.graph.{Digraph, DigraphEdgeList, Edge}
+import com.brunomnsilva.smartgraph.graphview.{SmartCircularSortedPlacementStrategy, SmartGraphPanel, SmartRadiusProvider, SmartShapeTypeProvider}
 import io.reactivex.rxjava3.core.{Observable, Scheduler}
 import io.reactivex.rxjava3.schedulers.Schedulers
 import javafx.application.Platform.runLater
@@ -16,39 +16,48 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import scala.jdk.CollectionConverters.*
 
+object GraphUtils {
+  enum VertexType(val shape: String, val radius: Double) {
+    case PACKAGE    extends VertexType("SQUARE",   9.0)
+    case CLASS      extends VertexType("CIRCLE",   6.0)
+    case DEPENDENCY extends VertexType("TRIANGLE", 4.5)
+  }
+  case class MyNode(id: String, vertexType: VertexType) {override def toString: String = id}
+  private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
+  import VertexType.*
+  extension (g: Digraph[MyNode, String])
+    private def getVertex(e: MyNode): Option[MyNode] = g.vertices().asScala.map(_.element()).toSet find (e equals _)
+    private def getEdge(e: String): Option[Edge[String, MyNode]] = g.edges().asScala find (_.element() equals e)
+    private def addMyEdge(id: String, from: MyNode, to: MyNode): MyNode = getEdge(id) match
+      case Some(e) => to
+      case _       => g.insertEdge(from, to, id); to
+    private def addMyNode(name: String, vType: VertexType): MyNode =
+      val node = MyNode(name, vType)
+      getVertex(node) match
+        case Some(n) => n
+        case _ => (g insertVertex node).element()
+    def addMyEdge(from: MyNode, to: MyNode): MyNode =
+      g.addMyEdge(edgeIdFormat(from.id, to.id), from, to)
+    def addPackage(name: String): MyNode = addMyNode(name, PACKAGE)
+    def addClass(name: ClassName): MyNode = addMyNode(name.toString, CLASS)
+    def addDependency(name: ClassName): MyNode = addMyNode(name.toString, DEPENDENCY)
+    def createGraphPane: SmartGraphPanel[MyNode, String] =
+      val graphView: SmartGraphPanel[MyNode, String] = SmartGraphPanel(g, SmartCircularSortedPlacementStrategy())
+      graphView setAutomaticLayout true
+      graphView setVertexShapeTypeProvider ((n: MyNode) => n.vertexType.shape)
+      graphView setVertexRadiusProvider ((n: MyNode) => n.vertexType.radius)
+      graphView
+}
 class GUIS extends Application {
   val WIDTH = 800; val HEIGHT = 600; val hSpacing = 10
 
   private val classCounter = AtomicInteger(0)
   private val depCounter   = AtomicInteger(0)
-  private lazy val graph: Graph[String, String] = DigraphEdgeList()
-  extension[A] (g: Graph[A, String])
-    private def containsVertex(e: A): Boolean = g.vertices().asScala.map(_.element()).toSet contains e
-    private def containsEdge(e: String): Boolean = g.edges().asScala.map(_.element()).toSet contains e
-    private def addMyEdge(id: String, from: A, to: A): Option[Edge[String, A]] =
-      if g containsEdge id
-      then None
-      else Some(g.insertEdge(from, to, id))
-    private def addMyEdge(from: A, to: A): Option[Edge[String, A]] =
-      g.addMyEdge(edgeIdFormat(from.toString, to.toString), from, to)
-    private def addMyNode(name: A): Option[Vertex[A]] =
-      if g containsVertex name
-      then None
-      else Some(g.insertVertex(name))
 
-  private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
-  private def drawClassNode(ci: ClassInfo, pkg: String): Unit =
-    graph addMyNode ci.name.toString
-    graph.addMyEdge(pkg, ci.name.toString)
-
-  private def drawDependency(from: ClassName, to: ClassName): Unit =
-    graph addMyNode to.toString
-    graph.addMyEdge(from.toString, to.toString)
-
-  private def createGraphPane(): SmartGraphPanel[String, String] =
-    val graphView: SmartGraphPanel[String, String] = SmartGraphPanel(graph, SmartCircularSortedPlacementStrategy()) // layout circolare
-    graphView.setAutomaticLayout(true); // auto-layout force-directed
-    graphView
+  import GraphUtils.MyNode
+  private lazy val graph: Digraph[MyNode, String] = DigraphEdgeList()
+  private def drawClassNode(pkg: MyNode, c: ClassName): MyNode = graph.addMyEdge(pkg, graph addClass c)
+  private def drawDependency(from: MyNode, to: ClassName): MyNode = graph.addMyEdge(from, graph addDependency to)
 
   private lazy val fxScheduler: Scheduler = Schedulers.from(Platform.runLater(_))
 
@@ -61,16 +70,14 @@ class GUIS extends Application {
     val lblDeps    = Label("Dependencies: 0")
     val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps, btnOnOff)
     val root = BorderPane()
-    val graphPane: SmartGraphPanel[String, String] = createGraphPane()
+    val graphPane: SmartGraphPanel[MyNode, String] = graph.createGraphPane
     root setTop topBar; root setCenter graphPane
 
     def drawPackageInfo(pi: PackageInfo): Unit =
       println(s"Package: ${pi.name}")
-      val newNode = graph addMyNode pi.name
+      val pkgNode = graph addPackage pi.name
       graphPane.updateAndWait()
-      newNode match
-        case Some(node) => graphPane getStylableVertex node addStyleClass "packageVertex"
-        case _          => ()
+      graphPane getStylableVertex pkgNode addStyleClass "packageVertex"
       pi.classInfos subscribe (
         (ci: ClassInfo) =>
           ci.log()
@@ -78,8 +85,8 @@ class GUIS extends Application {
             lblClasses setText s"Classes: ${classCounter.incrementAndGet()}"
             lblDeps setText s"Dependencies: ${depCounter addAndGet ci.dependencies.size}"
           }
-          drawClassNode(ci, pi.name)
-          ci.dependencies foreach{drawDependency(ci.name, _)}
+          val cNode = drawClassNode(pkgNode, ci.name)
+          ci.dependencies foreach{drawDependency(cNode, _)}
           graphPane.update(),
         (err: Throwable) => println(s"CI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
         () => ()
@@ -105,6 +112,7 @@ class GUIS extends Application {
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
     primaryStage setTitle "Dependency Analyzer"
     primaryStage.show()
+    //todo debug part below (except for graphPane.init())
     val file = File("INSERT_PATH")
     Observable
       .fromCallable(() => primaryStage.show())
