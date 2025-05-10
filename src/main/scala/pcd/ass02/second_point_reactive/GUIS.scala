@@ -47,6 +47,8 @@ object GraphUtils {
       graphView setVertexShapeTypeProvider ((n: MyNode) => n.vertexType.shape)
       graphView setVertexRadiusProvider ((n: MyNode) => n.vertexType.radius)
       graphView
+    def clear(): Unit =
+      g.vertices forEach{g removeVertex _}
 }
 class GUIS extends Application {
   val WIDTH = 800; val HEIGHT = 600; val hSpacing = 10
@@ -93,7 +95,8 @@ class GUIS extends Application {
       )
 
     def reset(): Unit =
-//      graph.clear()
+      graph.clear()
+      graphPane.update()
       classCounter set 0
       depCounter set 0
     btnOnOff setOnAction {_ =>
@@ -106,7 +109,7 @@ class GUIS extends Application {
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
           lblDir setText sel.getAbsolutePath
-          btnRun setOnAction {_ => reset(); scanProject(sel) subscribe drawPackageInfo}
+          btnRun setOnAction {_ => reset(); scanProject(sel) subscribeOn Schedulers.io subscribe drawPackageInfo}
         case _ => throw IllegalArgumentException("Directory selection failed!")
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
