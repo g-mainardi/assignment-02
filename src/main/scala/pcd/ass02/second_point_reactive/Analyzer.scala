@@ -49,10 +49,10 @@ object Analyzer {
 
   private def getClassInfo(source: File): ClassInfo =
     Thread.sleep(100)
-    val unit = parser.parse(source).getResult orElseThrow (() => IllegalArgumentException("Failed to parse [" + source + "]"))
-    val pkgName: String = Option(unit.getPackageDeclaration.get()) match
-      case Some(decl) => decl.getNameAsString
-      case _          => ""
+    val unit = parser.parse(source).getResult orElseThrow (() => IllegalArgumentException(s"Failed to parse [$source]"))
+    val pkgName: String =
+      try unit.getPackageDeclaration.get().getNameAsString
+      catch case e: NoSuchElementException => throw IllegalArgumentException(s"No package declaration in [$source]")
     val qualified: ClassName = source.getName stripSuffix ".java"
     val deps: List[ClassName] = unit.getImports.asScala.toList map(_.getNameAsString)
     Thread.sleep(1000)
