@@ -66,8 +66,11 @@ class GUIS extends Application {
 
     def drawPackageInfo(pi: PackageInfo): Unit =
       println(s"Package: ${pi.name}")
-      graph addMyNode pi.name
-      graphPane.update()
+      val newNode = graph addMyNode pi.name
+      graphPane.updateAndWait()
+      newNode match
+        case Some(node) => graphPane getStylableVertex node addStyleClass "packageVertex"
+        case _          => ()
       pi.classInfos subscribe (
         (ci: ClassInfo) =>
           ci.log()
