@@ -89,7 +89,8 @@ class GUIS extends Application {
           }
           val cNode = drawClassNode(pkgNode, ci.name)
           ci.dependencies foreach{drawDependency(cNode, _)}
-          graphPane.update(),
+          graphPane.updateAndWait()
+          graphPane getStylableVertex cNode addStyleClass "classVertex",
         (err: Throwable) => println(s"CI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
         () => ()
       )
