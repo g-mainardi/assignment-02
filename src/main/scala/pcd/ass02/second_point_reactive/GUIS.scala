@@ -1,7 +1,7 @@
 package pcd.ass02.second_point_reactive
 
 import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
-import com.brunomnsilva.smartgraph.graph.{Edge, Graph, GraphEdgeList, Vertex}
+import com.brunomnsilva.smartgraph.graph.{Edge, Graph, DigraphEdgeList, Vertex}
 import com.brunomnsilva.smartgraph.graphview.{SmartCircularSortedPlacementStrategy, SmartGraphPanel}
 import io.reactivex.rxjava3.core.{Observable, Scheduler}
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -21,7 +21,7 @@ class GUIS extends Application {
 
   private val classCounter = AtomicInteger(0)
   private val depCounter   = AtomicInteger(0)
-  private lazy val graph: Graph[String, String] = GraphEdgeList()
+  private lazy val graph: Graph[String, String] = DigraphEdgeList()
   extension[A] (g: Graph[A, String])
     private def containsVertex(e: A): Boolean = g.vertices().asScala.map(_.element()).toSet contains e
     private def containsEdge(e: String): Boolean = g.edges().asScala.map(_.element()).toSet contains e
