@@ -49,6 +49,7 @@ object GraphUtils {
       graphView
     def clear(): Unit =
       g.vertices forEach{g removeVertex _}
+      g.edges    forEach{g removeEdge  _}
 }
 class GUIS extends Application {
   val WIDTH = 800; val HEIGHT = 600; val hSpacing = 10
