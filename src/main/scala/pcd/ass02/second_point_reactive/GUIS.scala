@@ -106,10 +106,14 @@ class GUIS extends Application {
     }
 
     btnDir setOnAction {_ =>
+      btnRun setText "Analyze"
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
           lblDir setText sel.getAbsolutePath
-          btnRun setOnAction {_ => reset(); scanProject(sel) subscribeOn Schedulers.io subscribe drawPackageInfo}
+          btnRun setOnAction {_ =>
+            btnRun setText "Reset"
+            reset()
+            scanProject(sel) subscribeOn Schedulers.io subscribe drawPackageInfo}
         case _ => throw IllegalArgumentException("Directory selection failed!")
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
