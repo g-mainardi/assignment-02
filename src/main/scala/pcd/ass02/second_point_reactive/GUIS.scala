@@ -25,9 +25,13 @@ object GraphUtils {
     case CLASS      extends VertexType("CIRCLE",   6.0)
     case DEPENDENCY extends VertexType("TRIANGLE", 4.5)
   }
-  case class MyNode(id: String, vertexType: VertexType) {override def toString: String = id}
-  private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
   import VertexType.*
+  case class MyNode(id: String, vertexType: VertexType) {
+    override def toString: String = vertexType match
+    case CLASS => (id split "\\.").lastOption getOrElse id
+    case _     => id
+  }
+  private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
   extension (g: Digraph[MyNode, String])
     private def getVertex(e: MyNode): Option[MyNode] = g.vertices().asScala.map(_.element()).toSet find (e equals _)
     private def getEdge(e: String): Option[Edge[String, MyNode]] = g.edges().asScala find (_.element() equals e)

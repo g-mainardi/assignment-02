@@ -53,7 +53,7 @@ object Analyzer {
     val pkgName: String =
       try unit.getPackageDeclaration.get().getNameAsString
       catch case e: NoSuchElementException => throw IllegalArgumentException(s"No package declaration in [$source]")
-    val qualified: ClassName = source.getName stripSuffix ".java"
+    val qualified: ClassName = s"$pkgName.${source.getName stripSuffix ".java"}"
     val deps: List[ClassName] = unit.getImports.asScala.toList map(_.getNameAsString)
     Thread.sleep(1000)
     ClassInfo(qualified, deps)
