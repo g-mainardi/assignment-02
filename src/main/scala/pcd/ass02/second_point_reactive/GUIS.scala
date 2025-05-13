@@ -81,6 +81,7 @@ class GUIS extends Application {
   private val classCounter = AtomicInteger(0)
   private val depCounter   = AtomicInteger(0)
 
+  private var selectedFile: Option[File] = None
   import GraphUtils.MyNode
   private lazy val graph: Digraph[MyNode, String] = DigraphEdgeList()
 
@@ -165,7 +166,6 @@ class GUIS extends Application {
       else btnOnOff.stopLabel()
     }
 
-    var selectedFile: Option[File] = None
     btnDir setOnAction {_ =>
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
