@@ -167,9 +167,11 @@ class GUIS extends Application {
       else btnOnOff.stopLabel()
     }
 
+    var selectedFile: Option[File] = None
     btnDir setOnAction {_ =>
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
+          selectedFile = Some(sel)
           btnRun.analyzeLabelAndShow()
           lblDir setText sel.getAbsolutePath
           btnRun setOnAction {_ =>
@@ -185,10 +187,10 @@ class GUIS extends Application {
                   Platform runLater {() => btnRun.resetLabelAndShow(); btnDir.show()}
               )
           }
-        case _ =>
+        case _ if selectedFile.isEmpty =>
           btnRun.hide()
           btnOnOff.hide()
-          throw IllegalArgumentException("Directory selection failed!")
+        case _ => ()
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
     primaryStage setTitle "Dependency Analyzer"
