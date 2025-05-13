@@ -95,11 +95,26 @@ class GUIS extends Application {
 
   private lazy val fxScheduler: Scheduler = Schedulers.from(Platform.runLater(_))
 
+  private trait MyButton extends Button {
+    def hide(): Unit = this setVisible false
+    def show(): Unit = this setVisible true
+    hide()
+  }
+  private object RunButton extends MyButton {
+    def analyzeLabelAndShow(): Unit = {this setText "Analyze";show()}
+    def resetLabelAndShow(): Unit   = {this setText "Reset";show()}
+  }
+  private object LayoutButton extends MyButton {
+    def stopLabelAndShow(): Unit = {stopLabel(); show()}
+    def startLabel(): Unit = this setText "Start automatic layout"
+    def stopLabel(): Unit  = this setText "Stop automatic layout"
+  }
+
   override def start(primaryStage: Stage): Unit =
     val btnDir     = Button("Select Source")
     val lblDir     = Label("No folder selected")
-    val btnRun     = Button("Analyze")
-    val btnOnOff   = Button("Start/Stop")
+    val btnRun     = RunButton
+    val btnOnOff   = LayoutButton
     val lblClasses = Label("Classes: 0")
     val lblDeps    = Label("Dependencies: 0")
     val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps, btnOnOff)
@@ -141,21 +156,27 @@ class GUIS extends Application {
       depCounter set 0
 
     btnOnOff setOnAction {_ =>
-      val newValue = !graphPane.automaticLayoutProperty.get()
-      println(s"Setting automatic layout to $newValue")
-      graphPane setAutomaticLayout newValue
+      val wasAutomaticLayout = graphPane.automaticLayoutProperty.get()
+      graphPane setAutomaticLayout (!wasAutomaticLayout)
+      if wasAutomaticLayout
+      then btnOnOff.startLabel()
+      else btnOnOff.stopLabel()
     }
 
     btnDir setOnAction {_ =>
-      btnRun setText "Analyze"
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
+          btnRun.analyzeLabelAndShow()
           lblDir setText sel.getAbsolutePath
           btnRun setOnAction {_ =>
-            btnRun setText "Reset"
+            btnRun.resetLabelAndShow()
+            btnOnOff.stopLabelAndShow()
             reset()
             scanProject(sel) subscribeOn Schedulers.io subscribe drawPackageInfo}
-        case _ => throw IllegalArgumentException("Directory selection failed!")
+        case _ =>
+          btnRun.hide()
+          btnOnOff.hide()
+          throw IllegalArgumentException("Directory selection failed!")
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
     primaryStage setTitle "Dependency Analyzer"
