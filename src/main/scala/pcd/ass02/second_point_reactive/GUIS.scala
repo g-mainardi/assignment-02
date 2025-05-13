@@ -65,7 +65,6 @@ object GraphUtils {
      */
     def createGraphPane: SmartGraphPanel[MyNode, String] =
       val graphView: SmartGraphPanel[MyNode, String] = SmartGraphPanel(g, SmartCircularSortedPlacementStrategy())
-      graphView setAutomaticLayout true
       graphView setVertexShapeTypeProvider ((n: MyNode) => n.vertexType.shape)
       graphView setVertexRadiusProvider ((n: MyNode) => n.vertexType.radius)
       graphView
@@ -136,6 +135,7 @@ class GUIS extends Application {
      */
     def reset(): Unit =
       graph.clear()
+      graphPane setAutomaticLayout true
       graphPane.update()
       classCounter set 0
       depCounter set 0
