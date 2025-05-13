@@ -98,20 +98,24 @@ class GUIS extends Application {
   private trait MyButton extends Button {
     def hide(): Unit = this setVisible false
     def show(): Unit = this setVisible true
-    hide()
   }
   private object RunButton extends MyButton {
     def analyzeLabelAndShow(): Unit = {this setText "Analyze";show()}
     def resetLabelAndShow(): Unit   = {this setText "Reset";show()}
+    hide()
   }
   private object LayoutButton extends MyButton {
     def stopLabelAndShow(): Unit = {stopLabel(); show()}
     def startLabel(): Unit = this setText "Start automatic layout"
     def stopLabel(): Unit  = this setText "Stop automatic layout"
+    hide()
+  }
+  private object DirButton extends MyButton {
+    this setText "Select Source"
   }
 
   override def start(primaryStage: Stage): Unit =
-    val btnDir     = Button("Select Source")
+    val btnDir     = DirButton
     val lblDir     = Label("No folder selected")
     val btnRun     = RunButton
     val btnOnOff   = LayoutButton
