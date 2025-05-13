@@ -3,7 +3,7 @@ package pcd.ass02.second_point_reactive
 import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
 import com.brunomnsilva.smartgraph.graph.{Digraph, DigraphEdgeList, Edge}
 import com.brunomnsilva.smartgraph.graphview.{SmartCircularSortedPlacementStrategy, SmartGraphPanel, SmartRadiusProvider, SmartShapeTypeProvider}
-import io.reactivex.rxjava3.core.{Observable, Scheduler}
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import javafx.application.Platform.runLater
 import javafx.application.{Application, Platform}
@@ -92,8 +92,6 @@ class GUIS extends Application {
    * Add a Dependency Node to the Graph, or yield it if it already exists, and link it to the parent Class.
    */
   private def drawDependency(from: MyNode, to: ClassName): MyNode = graph.addMyEdge(from, graph addDependency to)
-
-  private lazy val fxScheduler: Scheduler = Schedulers.from(Platform.runLater(_))
 
   private trait MyButton extends Button {
     def hide(): Unit = this setVisible false
@@ -194,21 +192,9 @@ class GUIS extends Application {
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)
     primaryStage setTitle "Dependency Analyzer"
-    primaryStage.show()
-    //todo debug part below (except for graphPane.init())
-    val file = File("INSERT_PATH")
     Observable
       .fromCallable(() => primaryStage.show())
       .doOnNext(_ => println("Stage prepared"))
       .map(_ => graphPane.init())
-      .doOnNext(_ => println("Graph initialized"))
-      .observeOn(Schedulers.io)
-      .subscribe {_ =>
-        scanProject(file)
-          .subscribe(
-            (pi: PackageInfo) => drawPackageInfo(pi),
-            (err: Throwable) => println(s"PI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
-            () => ()
-          )
-      }
+      .subscribe(_ => println("Graph initialized"))
 }
