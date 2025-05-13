@@ -142,7 +142,8 @@
                 <configuration>
                     <scalaVersion>3.3.3</scalaVersion>
                     <args>
-                        <arg>-target:jvm-17</arg>
+                        <arg>-release</arg>
+                        <arg>17</arg>
                     </args>
                 </configuration>
             </plugin>
