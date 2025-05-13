@@ -1,7 +1,7 @@
 package pcd.ass02.first_point_asynch
 
+import pcd.ass02.first_point_asynch.DependencyAnalyzerLibScala.*
 import java.io.File
-import pcd.ass02.first_point_asynch.DependencyAnalyzerLibScala._
 
 object TestDependencyAnalyzerLibScala { @throws[Exception]
  def main(args: Array[String]): Unit =

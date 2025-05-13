@@ -14,17 +14,23 @@ object Analyzer {
   /**
    * @param name full class name, e.g. pcd.ass02.MyClass
    * @param dependencies  list of fully-qualified imported names
-   * @param packageName   package of the class (dot-separated)
    */
-  case class ClassInfo(name: ClassName, dependencies: List[ClassName], packageName: String)
+  case class ClassInfo(name: ClassName, dependencies: List[ClassName]) {
+    def log(): Unit = 
+      println(s"\tClass: ${name.replace(".java", "")}")
+      dependencies foreach{d => println(s"\t\t$d")}
+  }
   case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
     def log(): Unit =
-//      val id = PackageId.next()
       println(s"Package: $name")
-      classInfos subscribe { (ci: ClassInfo) =>
-        println(s"\tClass: ${ci.name.replace(".java", "")}")
-        ci.dependencies.foreach(d => println(s"\t\t$d"))
-      }
+      classInfos subscribe (
+        (ci: ClassInfo) =>
+          println(s"\tClass: ${ci.name.replace(".java", "")}")
+          ci.dependencies.foreach(d => println(s"\t\t$d")),
+        (err: Throwable) =>
+          println(s"PI log: ${Thread.currentThread().getName} caught ${err.getMessage}"),
+        () => ()
+      )
       println()
   }
   private def isVisible(p: Path) = !(p.iterator.asScala map(_.toString) exists(n => n != "." && n.startsWith(".")))
@@ -42,13 +48,15 @@ object Analyzer {
   }
 
   private def getClassInfo(source: File): ClassInfo =
-    val unit = parser.parse(source).getResult orElseThrow (() => IllegalArgumentException("Failed to parse [" + source + "]"))
-    val pkgName: String = Option(unit.getPackageDeclaration.get()) match
-      case Some(decl) => decl.getNameAsString
-      case _          => ""
+    Thread.sleep(100)
+    val unit = parser.parse(source).getResult orElseThrow (() => IllegalArgumentException(s"Failed to parse [$source]"))
+    val pkgName: String =
+      try unit.getPackageDeclaration.get().getNameAsString
+      catch case e: NoSuchElementException => throw IllegalArgumentException(s"No package declaration in [$source]")
     val qualified: ClassName = s"$pkgName.${source.getName stripSuffix ".java"}"
     val deps: List[ClassName] = unit.getImports.asScala.toList map(_.getNameAsString)
-    ClassInfo(qualified, deps, pkgName)
+    Thread.sleep(1000)
+    ClassInfo(qualified, deps)
 
   private def scanPackage(source: File): Observable[ClassInfo] =
     Observable.create { emitter => Option(source.listFiles) match

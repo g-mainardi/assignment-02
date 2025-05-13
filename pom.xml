@@ -52,21 +52,15 @@
             <version>11.1.1</version>
         </dependency>
 
-        <!-- GraphStream per disegnare il grafo in JavaFX -->
-        <dependency>
-            <groupId>org.graphstream</groupId>
-            <artifactId>gs-core</artifactId>
-            <version>2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.graphstream</groupId>
-            <artifactId>gs-ui-javafx</artifactId>
-            <version>2.0</version>
-        </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala3-library_3</artifactId>
             <version>3.3.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.brunomnsilva</groupId>
+            <artifactId>smartgraph</artifactId>
+            <version>2.0.0</version>
         </dependency>
     </dependencies>
 
@@ -122,6 +116,14 @@
                 <configuration>
                     <mainClass>pcd.ass02.second_point_reactive.GUIS</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>run-javafx</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
@@ -140,7 +142,8 @@
                 <configuration>
                     <scalaVersion>3.3.3</scalaVersion>
                     <args>
-                        <arg>-target:jvm-17</arg>
+                        <arg>-release</arg>
+                        <arg>17</arg>
                     </args>
                 </configuration>
             </plugin>

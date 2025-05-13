@@ -1,0 +1,48 @@
+.graph {
+    -fx-background-color: #F4FFFB;
+}
+
+.vertex {
+    -fx-stroke-width: 0.8;
+    -fx-fill: #00ff66;
+    -fx-stroke-type: inside; /* you should keep this for vertex.radius to hold */
+    -fx-stroke: #528f57;
+}
+
+.vertex:hover { /* pseudo-classes also work */
+    /*-fx-cursor: default; */ /* You can use this style to override the hand/move cursors while hovering. */
+    -fx-stroke-width: 4;
+}
+
+.vertex-label {
+    -fx-font: bold 8pt "sans-serif";
+}
+
+.edge {
+    -fx-stroke-width: 2;
+    -fx-stroke: #FF6D66;
+    -fx-stroke-dash-array: 2 5 2 5; /* remove for clean edges */
+    -fx-fill: transparent; /*important for curved edges. do not remove */
+    -fx-stroke-line-cap: round;
+    -fx-opacity: 0.8;
+}
+
+.arrow {
+    -fx-stroke-width: 1.6;
+    -fx-stroke: #FF6D66;
+    -fx-stroke-dash-array: none;
+}
+
+/* Custom vertex. You should revert any unwanted styling in the default element,
+   style, since custom styles will be appended to the default style */
+.vertex.packageVertex {
+    -fx-fill: #FFCC00;
+    /* bordo e spessore */
+    -fx-stroke: #333333;
+    -fx-stroke-width: 2.2;
+}
+.vertex.classVertex {
+    -fx-stroke: #61B5F1;
+    -fx-fill: #B1DFF7;
+    -fx-stroke-width: 1.8;
+}
