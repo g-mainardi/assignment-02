@@ -113,6 +113,13 @@ class GUIS extends Application {
     this setText "Select Source"
   }
 
+  private def showCompletionAlert(): Unit =
+    val alert = new Alert(Alert.AlertType.INFORMATION)
+    alert setTitle "Analysis Complete"
+    alert setHeaderText "Project scanned successfully!"
+    alert setContentText s"Found:\n- ${classCounter.get()} classes\n- ${depCounter.get()} dependencies"
+    alert.showAndWait()
+
   override def start(primaryStage: Stage): Unit =
     val btnDir     = DirButton
     val lblDir     = Label("No folder selected")
@@ -182,7 +189,7 @@ class GUIS extends Application {
                 (err: Throwable) => println(s"PI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
                 () =>
                   println(s"Scan project of [$sel] successfully completed!")
-                  Platform runLater {() => btnRun.resetLabelAndShow(); btnDir.show()}
+                  Platform runLater {() => btnRun.resetLabelAndShow(); btnDir.show(); showCompletionAlert()}
               )
           }
         case _ if selectedFile.isEmpty =>
