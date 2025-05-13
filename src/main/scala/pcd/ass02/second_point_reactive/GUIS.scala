@@ -173,10 +173,18 @@ class GUIS extends Application {
           btnRun.analyzeLabelAndShow()
           lblDir setText sel.getAbsolutePath
           btnRun setOnAction {_ =>
-            btnRun.resetLabelAndShow()
+            btnRun.hide()
+            btnDir.hide()
             btnOnOff.stopLabelAndShow()
             reset()
-            scanProject(sel) subscribeOn Schedulers.io subscribe drawPackageInfo}
+            scanProject(sel) subscribeOn Schedulers.io subscribe (
+                (pi: PackageInfo) => drawPackageInfo(pi),
+                (err: Throwable) => println(s"PI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
+                () =>
+                  println(s"Scan project of [$sel] successfully completed!")
+                  Platform runLater {() => btnRun.resetLabelAndShow(); btnDir.show()}
+              )
+          }
         case _ =>
           btnRun.hide()
           btnOnOff.hide()
