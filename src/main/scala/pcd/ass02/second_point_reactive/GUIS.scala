@@ -1,6 +1,6 @@
 package pcd.ass02.second_point_reactive
 
-import Analyzer.{ClassInfo, ClassName, PackageInfo, scanProject}
+import Analyzer.{ClassInfo, PackageInfo, scanProject}
 import com.brunomnsilva.smartgraph.graph.{Digraph, DigraphEdgeList, Edge}
 import com.brunomnsilva.smartgraph.graphview.{SmartCircularSortedPlacementStrategy, SmartGraphPanel, SmartRadiusProvider, SmartShapeTypeProvider}
 import io.reactivex.rxjava3.core.Observable
@@ -11,6 +11,7 @@ import javafx.scene.control.*
 import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.{Scene, control, layout}
 import javafx.stage.{DirectoryChooser, Stage}
+import pcd.ass02.Utils.ClassName
 
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -31,7 +32,7 @@ object GraphUtils {
     case CLASS => (id split "\\.").lastOption getOrElse id
     case _     => id
   }
-  private def edgeIdFormat(from: ClassName | String, to: ClassName | String): String = s"$from->$to"
+  private def edgeIdFormat(from: ClassName, to: ClassName): String = s"$from->$to"
   extension (g: Digraph[MyNode, String])
     private def getVertex(e: MyNode): Option[MyNode] = g.vertices().asScala.map(_.element()).toSet find (e equals _)
     private def getEdge(e: String): Option[Edge[String, MyNode]] = g.edges().asScala find (_.element() equals e)
@@ -54,11 +55,11 @@ object GraphUtils {
     /**
      * Add a Node of Class type and returns it, if it already exists, then it's yield.
      */
-    def addClass(name: ClassName): MyNode = addMyNode(name.toString, CLASS)
+    def addClass(name: ClassName): MyNode = addMyNode(name, CLASS)
     /**
      * Add a Node of Dependency type and returns it, if it already exists, then it's yield.
      */
-    def addDependency(name: ClassName): MyNode = addMyNode(name.toString, DEPENDENCY)
+    def addDependency(name: ClassName): MyNode = addMyNode(name, DEPENDENCY)
     /**
      * Create a new dynamic Panel View from the Graph with automatic layout and configuration for the nodes
      *  and returns it.
@@ -75,12 +76,27 @@ object GraphUtils {
       g.vertices forEach{g removeVertex _}
       g.edges    forEach{g removeEdge  _}
 }
+
+private trait MyButton extends Button {
+  def hide(): Unit = this setVisible false
+  def show(): Unit = this setVisible true
+}
+private object RunButton extends MyButton {
+  def analyzeLabelAndShow(): Unit = {this setText "Analyze";show()}
+  def restartLabelAndShow(): Unit   = {this setText "Restart";show()}
+  hide()
+}
+private object LayoutButton extends MyButton {
+  def stopLabelAndShow(): Unit = {stopLabel(); show()}
+  def startLabel(): Unit = this setText "Start automatic layout"
+  def stopLabel(): Unit  = this setText "Stop automatic layout"
+  hide()
+}
+private object DirButton extends MyButton {this setText "Select Source"}
+
 class GUIS extends Application {
-  val WIDTH = 800; val HEIGHT = 600; val hSpacing = 10
-
-  private val classCounter = AtomicInteger(0)
-  private val depCounter   = AtomicInteger(0)
-
+  private val WIDTH = 800; private val HEIGHT = 600; private val hSpacing = 10
+  private val classCounter = AtomicInteger(0); private val depCounter   = AtomicInteger(0)
   private var selectedFile: Option[File] = None
   import GraphUtils.MyNode
   private lazy val graph: Digraph[MyNode, String] = DigraphEdgeList()
@@ -94,25 +110,6 @@ class GUIS extends Application {
    */
   private def drawDependency(from: MyNode, to: ClassName): MyNode = graph.addMyEdge(from, graph addDependency to)
 
-  private trait MyButton extends Button {
-    def hide(): Unit = this setVisible false
-    def show(): Unit = this setVisible true
-  }
-  private object RunButton extends MyButton {
-    def analyzeLabelAndShow(): Unit = {this setText "Analyze";show()}
-    def resetLabelAndShow(): Unit   = {this setText "Reset";show()}
-    hide()
-  }
-  private object LayoutButton extends MyButton {
-    def stopLabelAndShow(): Unit = {stopLabel(); show()}
-    def startLabel(): Unit = this setText "Start automatic layout"
-    def stopLabel(): Unit  = this setText "Stop automatic layout"
-    hide()
-  }
-  private object DirButton extends MyButton {
-    this setText "Select Source"
-  }
-
   private def showCompletionAlert(): Unit =
     val alert = new Alert(Alert.AlertType.INFORMATION)
     alert setTitle "Analysis Complete"
@@ -121,13 +118,10 @@ class GUIS extends Application {
     alert.showAndWait()
 
   override def start(primaryStage: Stage): Unit =
-    val btnDir     = DirButton
     val lblDir     = Label("No folder selected")
-    val btnRun     = RunButton
-    val btnOnOff   = LayoutButton
     val lblClasses = Label("Classes: 0")
     val lblDeps    = Label("Dependencies: 0")
-    val topBar = HBox(hSpacing, btnDir, lblDir, btnRun, lblClasses, lblDeps, btnOnOff)
+    val topBar = HBox(hSpacing, DirButton, lblDir, RunButton, lblClasses, lblDeps, LayoutButton)
     val root = BorderPane()
     val graphPane: SmartGraphPanel[MyNode, String] = graph.createGraphPane
     root setTop topBar; root setCenter graphPane
@@ -165,36 +159,36 @@ class GUIS extends Application {
       classCounter set 0
       depCounter set 0
 
-    btnOnOff setOnAction {_ =>
+    LayoutButton setOnAction {_ =>
       val wasAutomaticLayout = graphPane.automaticLayoutProperty.get()
       graphPane setAutomaticLayout (!wasAutomaticLayout)
       if wasAutomaticLayout
-      then btnOnOff.startLabel()
-      else btnOnOff.stopLabel()
+      then LayoutButton.startLabel()
+      else LayoutButton.stopLabel()
     }
 
-    btnDir setOnAction {_ =>
+    DirButton setOnAction {_ =>
       Option(DirectoryChooser() showDialog primaryStage) match
         case Some(sel) =>
           selectedFile = Some(sel)
-          btnRun.analyzeLabelAndShow()
+          RunButton.analyzeLabelAndShow()
           lblDir setText sel.getAbsolutePath
-          btnRun setOnAction {_ =>
-            btnRun.hide()
-            btnDir.hide()
-            btnOnOff.stopLabelAndShow()
+          RunButton setOnAction {_ =>
+            RunButton.hide()
+            DirButton.hide()
+            LayoutButton.stopLabelAndShow()
             reset()
             scanProject(sel) subscribeOn Schedulers.io subscribe (
                 (pi: PackageInfo) => drawPackageInfo(pi),
                 (err: Throwable) => println(s"PI draw: ${Thread.currentThread().getName} caught ${err.getMessage}"),
                 () =>
                   println(s"Scan project of [$sel] successfully completed!")
-                  Platform runLater {() => btnRun.resetLabelAndShow(); btnDir.show(); showCompletionAlert()}
+                  Platform runLater {() => RunButton.restartLabelAndShow(); DirButton.show(); showCompletionAlert()}
               )
           }
         case _ if selectedFile.isEmpty =>
-          btnRun.hide()
-          btnOnOff.hide()
+          RunButton.hide()
+          LayoutButton.hide()
         case _ => ()
     }
     primaryStage setScene Scene(root, WIDTH, HEIGHT)

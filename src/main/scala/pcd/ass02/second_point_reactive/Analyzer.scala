@@ -1,94 +1,69 @@
 package pcd.ass02.second_point_reactive
 
-import com.github.javaparser.{JavaParser, ParserConfiguration}
 import io.reactivex.rxjava3.core.Observable
+import pcd.ass02.Utils.*
 
 import java.io.{File, IOException}
-import java.nio.file.{Files, Path}
+import java.nio.file.Files
 import scala.jdk.CollectionConverters.*
 
 object Analyzer {
-  private val config = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_14)
-  private val parser = new JavaParser(config)
-  opaque type ClassName = String
   /**
-   * @param name full class name, e.g. pcd.ass02.MyClass
+   * @param name          full class name, e.g. pcd.ass02.MyClass
    * @param dependencies  list of fully-qualified imported names
    */
   case class ClassInfo(name: ClassName, dependencies: List[ClassName]) {
-    def log(): Unit = 
-      println(s"\tClass: ${name.replace(".java", "")}")
-      dependencies foreach{d => println(s"\t\t$d")}
+    def log(): Unit = {println(s"\tClass: $name"); dependencies foreach {d => println(s"\t\t$d")}}
   }
+
+  /**
+   * @param name       full package name, e.g. pcd.ass02.scala.second_point_reactive
+   * @param classInfos observable of the classes inside the package
+   */
   case class PackageInfo(name: String, classInfos: Observable[ClassInfo]) {
     def log(): Unit =
       println(s"Package: $name")
       classInfos subscribe (
-        (ci: ClassInfo) =>
-          println(s"\tClass: ${ci.name.replace(".java", "")}")
-          ci.dependencies.foreach(d => println(s"\t\t$d")),
-        (err: Throwable) =>
-          println(s"PI log: ${Thread.currentThread().getName} caught ${err.getMessage}"),
+        (ci: ClassInfo) => ci.log(),
+        (err: Throwable) => println(s"PI log: ${Thread.currentThread} caught ${err.getMessage}"),
         () => ()
-      )
-      println()
+      );println()
   }
-  private def isVisible(p: Path) = !(p.iterator.asScala map(_.toString) exists(n => n != "." && n.startsWith(".")))
-  private def isJavaFile(file: File) = file.isFile && (file.getName endsWith ".java")
-  private def isPackage(f: File): Boolean = f.isDirectory && f.listFiles(isJavaFile).nonEmpty
-  object TestIsPackage {
-    private def testIsPackage(s: String): Unit =
-      println(s"Is $s a package? ${isPackage(File(s))}")
 
-    testIsPackage(".")
-    testIsPackage("src/main")
-    testIsPackage("src/main/java")
-    testIsPackage("src/main/java/pcd/ass02/first_point_asynch")
-    testIsPackage("src/main/java/pcd/ass02/second_point_reactive")
-  }
+  /**
+   * @param source path to the folder to be analyzed
+   * @return observable of the packages inside the folder
+   */
+  def scanProject(source: File): Observable[PackageInfo] =
+    Observable create { emitter =>
+      source match
+        case s if s.isDirectory =>
+          val stream = Files walk s.toPath
+          try
+            getPackagesPath(stream.iterator.asScala)
+              .foreach { dir => emitter onNext PackageInfo(dir.getName, scanPackage(dir)) }
+          finally
+            stream.close(); emitter.onComplete()
+        case _ => emitter onError IllegalArgumentException(s"This [${source.toPath}] is not a directory")
+    }
 
   private def getClassInfo(source: File): ClassInfo =
-    Thread.sleep(100)
     val unit = parser.parse(source).getResult orElseThrow (() => IllegalArgumentException(s"Failed to parse [$source]"))
     val pkgName: String =
-      try unit.getPackageDeclaration.get().getNameAsString
+      try unit.getPackageDeclaration.get.getNameAsString
       catch case e: NoSuchElementException => throw IllegalArgumentException(s"No package declaration in [$source]")
-    val qualified: ClassName = s"$pkgName.${source.getName stripSuffix ".java"}"
-    val deps: List[ClassName] = unit.getImports.asScala.toList map(_.getNameAsString)
-    Thread.sleep(1000)
-    ClassInfo(qualified, deps)
+    ClassInfo(s"$pkgName.${getClassName(source)}", getDependencies(unit))
 
   private def scanPackage(source: File): Observable[ClassInfo] =
     Observable.create { emitter => Option(source.listFiles) match
-        case Some(files) if files.nonEmpty =>
-          files filter isJavaFile foreach { emitter onNext getClassInfo(_) }
-          emitter.onComplete()
-        case _ => emitter onError IOException(s"No Java files in ${source.getAbsolutePath}")
+      case Some(files) if files.nonEmpty =>
+        files filter isJavaFile foreach { emitter onNext getClassInfo(_) }
+        emitter.onComplete()
+      case _ => emitter onError IOException(s"No Java files in ${source.getAbsolutePath}")
     }
-
-  def scanProject(source: File): Observable[PackageInfo] =
-    Observable create { emitter => source match
-      case s if s.isDirectory =>
-        val stream = Files.walk(s.toPath)
-        try
-          val dirs = (stream.iterator().asScala filter isVisible map (_.toFile) filter isPackage).toSet
-          dirs foreach {dir => emitter onNext PackageInfo(dir.getName, scanPackage(dir))}
-        finally
-          stream.close()
-          emitter.onComplete()
-      case _ => emitter onError IllegalArgumentException("Not a dir")
-    }
-
-  private object PackageId {
-    private var count: Int = 0
-    def next(): Int =
-      val c = count
-      count += 1; c
-    def reset(): Unit = count = 0
-  }
 
   def main(args: Array[String]): Unit =
+    println("Test Analyzer in this project")
     scanProject(File(".")) subscribe((pi: PackageInfo) => pi.log())
-    PackageId.reset()
 }
 

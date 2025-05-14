@@ -1,41 +1,33 @@
 package pcd.ass02.first_point_asynch
 
+import io.vertx.core.Future
 import pcd.ass02.first_point_asynch.DependencyAnalyzerLibScala.*
+import pcd.ass02.first_point_asynch.TestDependencyAnalyzerLibScala.Analyzer.{CLASS, PACKAGE, PROJECT}
+
 import java.io.File
 
 object TestDependencyAnalyzerLibScala { @throws[Exception]
- def main(args: Array[String]): Unit =
-  testGetClassDependencies("")
-  testGetClassDependencies("src/main/java/pcd/ass02/first_point_asynch/foopack/B.java")
-  testGetPackageDependencies("src/main/java/pcd/ass02/first_point_asynch/foopack/")
-  testGetPackageDependencies("src/main/java/pcd/ass02/first_point_asynch/foopack2/")
-  testGetProjectDependencies(".")
-  testGetProjectDependencies("src/main/java/pcd/ass02/first_point_asynch/foopack/")
+  enum Analyzer{case CLASS; case PACKAGE; case PROJECT}
 
-  def testGetClassDependencies(filePath: String): Unit =
-   log("Doing the class dependencies async call... ")
-   val fut = getClassDependencies(new File(filePath))
-   log("...called function...")
-   fut
-     .onSuccess((res: ClassDepsReport) => log("...here are the dependencies \n" + res.toString))
-     .onFailure((err: Throwable) => log("...failure with path [" + filePath + "]: \n" + err.toString))
+  def main(args: Array[String]): Unit =
+    test(CLASS, "") // should launch exception
+    test(CLASS, "src/main/java/pcd/ass02/first_point_asynch/foopack/B.java")
+    test(PACKAGE, "src/main/java/pcd/ass02/first_point_asynch/foopack/")
+    test(PACKAGE, "src/main/java/pcd/ass02/first_point_asynch/foopack2/")
+    test(PROJECT, ".")
+    test(PROJECT, "src/main/java/pcd/ass02/first_point_asynch/foopack/")
 
-  def testGetPackageDependencies(packagePath: String): Unit =
-   log("Doing the package dependencies async call... ")
-   val fut = getPackageDependencies(new File(packagePath))
-   log("...called function...")
-   fut
-     .onSuccess((res: PackageDepsReport) => log("...here are the dependencies \n" + res.toString))
-     .onFailure((res: Throwable) => log("...failure with path [" + packagePath + "]: \n" + res.toString))
+  def log(msg: String): Unit = println(s"[ ${System.currentTimeMillis} ][ ${Thread.currentThread} ] $msg")
 
-  def testGetProjectDependencies(projectPath: String): Unit =
-   log("Doing the project dependencies async call... ")
-   val fut = getProjectDependencies(new File(projectPath))
-   log("...called function...")
-   fut
-     .onSuccess((res: ProjectDepsReport) => log("...here are the dependencies \n" + res.toString))
-     .onFailure((res: Throwable) => log("...failure with path [" + projectPath + "]: \n" + res.toString))
-
-  def log(msg: String): Unit =
-   println("[ " + System.currentTimeMillis + " ][ " + Thread.currentThread + " ] " + msg)
+  private def test(analyzeOn: Analyzer, path: String): Unit =
+    log(s"Doing the $analyzeOn dependencies async call... ")
+    val futureReport = (analyzeOn match {
+      case CLASS   => getClassDependencies
+      case PACKAGE => getPackageDependencies
+      case PROJECT => getProjectDependencies
+    })(File(path))
+    log("...called function...")
+    futureReport
+      .onSuccess(report => log(s"...here are the dependencies \n\t$report"))
+      .onFailure((err: Throwable) => log(s"...failure with path [$path]: \n\t${err.getMessage}"))
 }
